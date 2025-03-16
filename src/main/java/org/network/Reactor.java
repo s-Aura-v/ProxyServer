@@ -5,6 +5,7 @@ import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -63,6 +64,19 @@ public class Reactor implements Runnable {
             r.run();
         }
     }
+
+    class Acceptor implements Runnable {
+        @Override
+        public void run() {
+            try {
+                SocketChannel c = serverSocket.accept();
+                if (c != null)
+                    new Handler(selector, c);
+            }
+            catch(IOException ex) { /* ... */ }
+        }
+    }
+
     // End of Dispatch Loop
 
     public static void main(String[] args) {
