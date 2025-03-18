@@ -20,8 +20,7 @@ public class Handler implements Runnable {
     public Handler(Selector sel, SocketChannel c)
             throws IOException {
         socket = c;
-        // same idea as reactor; keeping blocking true
-        c.configureBlocking(true);
+        c.configureBlocking(false);
 
         // Optionally try first read now
         sk = socket.register(sel, 0);

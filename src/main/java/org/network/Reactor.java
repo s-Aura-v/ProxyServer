@@ -18,15 +18,12 @@ public class Reactor implements Runnable {
         selector = Selector.open();
         serverSocket = ServerSocketChannel.open();
         serverSocket.socket().bind(new InetSocketAddress(port));
-
-        // NOTE: If you are dealing with multiple clients, it should be set to false.
-        // In this project, we only deal with one client, hence blocking is true.
-        serverSocket.configureBlocking(true);
+        serverSocket.configureBlocking(false);
 
         // register what to do when I get a connection, whenever it happens, do it please
         SelectionKey key = serverSocket.register(selector, SelectionKey.OP_ACCEPT);
         // TODO: See if I need to attach an acceptor
-//        key.attach();
+        key.attach(new Acceptor());
     }
 
 
@@ -79,7 +76,5 @@ public class Reactor implements Runnable {
 
     // End of Dispatch Loop
 
-    public static void main(String[] args) {
 
-    }
 }
