@@ -1,3 +1,16 @@
 1. Reactor would not work with OP.Accept
 Cause: SelectionKey is a non blocking IO, but I had set the mode to BLOCKING = TRUE.
 Solution: Make it a non blocking
+
+
+
+Architect:
+1. Start Reactor
+2. Reactor waits for client message
+3. Send message through Client
+4. Once message is received, dispatch to create the handler
+5.
+
+
+Resources:
+https://stackoverflow.com/questions/905781/how-to-read-and-write-data-and-accepting-connection-using-socket-channel

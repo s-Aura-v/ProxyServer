@@ -1,24 +1,18 @@
 package org.network;
 
 import java.io.IOException;
-import java.nio.CharBuffer;
-import java.nio.channels.ServerSocketChannel;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetEncoder;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class Tester {
+    public static void main(String[] args) throws IOException {
+        // Start the Reactor in its own thread
+        Thread reactorThread = new Thread(new Reactor(26880));
+        reactorThread.start();
 
-    public static void main(String[] args) throws Exception{
-
-
-        ExecutorService service = Executors.newFixedThreadPool(1);
-        service.execute( new Reactor(26880));
-        service.shutdown();
-
-
-
+        // Start the client in its own thread to send data to the Reactor server
+        new Thread(new Client()).start();
+        new Thread(new Client()).start();
     }
 }

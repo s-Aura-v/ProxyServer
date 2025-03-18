@@ -22,7 +22,8 @@ public class Reactor implements Runnable {
 
         // register what to do when I get a connection, whenever it happens, do it please
         SelectionKey key = serverSocket.register(selector, SelectionKey.OP_ACCEPT);
-        // TODO: See if I need to attach an acceptor
+
+        // Create the Acceptor which in turns is used to make the handler
         key.attach(new Acceptor());
     }
 
@@ -55,6 +56,7 @@ public class Reactor implements Runnable {
         }
     }
 
+    // creates the handler using the Acceptor
     void dispatch(SelectionKey key) {
         Runnable r = (Runnable) key.attachment();
         if (r != null) {
@@ -62,6 +64,7 @@ public class Reactor implements Runnable {
         }
     }
 
+    // create a handler that either reads or writes
     class Acceptor implements Runnable {
         @Override
         public void run() {

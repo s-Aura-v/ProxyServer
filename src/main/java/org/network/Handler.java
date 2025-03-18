@@ -29,12 +29,18 @@ public class Handler implements Runnable {
         sel.wakeup();
     }
 
+    // write the code for reading here
     boolean inputIsComplete() { /* ... */
-        return false;
+        System.out.println("handled!");
+        return true;
     }
 
+    // write the code for writing here
+    // if writing failed, return false and continues the loop going (maybe); but client needs to send packet again
+    // if writing passed, complete and finishes the current iteration
     boolean outputIsComplete() { /* ... */
-        return false;
+        System.out.println("not handled!");
+        return true;
     }
 
     void process() { /* ... */ }
@@ -52,6 +58,7 @@ public class Handler implements Runnable {
         }
     }
 
+    // once input is read, set to reading mode so that we can send an ack back
     void read() throws IOException {
         socket.read(input);
         if (inputIsComplete()) {
@@ -62,6 +69,7 @@ public class Handler implements Runnable {
         }
     }
 
+    // once output is sent, then cancel the key and let the new iteration run
     void send() throws IOException {
         socket.write(output);
         if (outputIsComplete()) sk.cancel();
