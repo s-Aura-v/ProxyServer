@@ -13,6 +13,5 @@ public class Tester {
 
         // Start the client in its own thread to send data to the Reactor server
         new Thread(new Client()).start();
-        new Thread(new Client()).start();
     }
 }
