@@ -46,17 +46,41 @@ public final class Config {
         output.write(MODE.getBytes());
         output.write(0);
         byte[] requestPacket = output.toByteArray();
-        System.out.println(Arrays.toString(requestPacket));
 
         // Debug for formula
         int totalSize = (1 + READ_OPCODE) + ( title.getBytes().length + 1) + (MODE.getBytes().length + 1);
-        System.out.println(totalSize);
+        System.out.print(totalSize + " bytes : ");
+        System.out.println(Arrays.toString(requestPacket));
 
         return requestPacket;
     }
 
+    static byte[] createDataPacket(String data, int blockNum) throws IOException {
+        // Data Packets: opcode + block # + data
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        output.write(new byte[]{0x00, 0x03});
+        // If the size is too big to fit inside a 8 byte code, then you have to split it into low and high bytes.
+        // 16 bytes = 128 bits = 2^128 amount of bits
+        output.write((byte) (blockNum >> 8)); // High byte
+        output.write((byte) (blockNum & 0xFF)); // Low byte
+        output.write(data.getBytes());
+        byte[] dataPacket = output.toByteArray();
+
+        // Debug for formula
+        System.out.print(dataPacket.length + " bytes : ");
+        System.out.print(Arrays.toString(dataPacket));
+
+        return dataPacket;
+    }
+
     public static void main(String[] args) throws IOException {
+        System.out.println("RRQ/WRQ Packet Debug");
         createRequestPacket(false, "TEST");
         createRequestPacket(true, "TESTING");
+
+        System.out.println("Data Packet Debug");
+        createDataPacket("this is the real data", 1);
+        createDataPacket("this is the fake data, but really, there's more", 99999999);
     }
 }

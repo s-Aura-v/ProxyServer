@@ -2,7 +2,7 @@
 Cause: SelectionKey is a non blocking IO, but I had set the mode to BLOCKING = TRUE.
 Solution: Make it a non blocking
 
-
+2. Splitting bytes in high and low bytes for block number in data packet
 
 Architect:
 1. Start Reactor
@@ -14,3 +14,4 @@ Architect:
 
 Resources:
 https://stackoverflow.com/questions/905781/how-to-read-and-write-data-and-accepting-connection-using-socket-channel
+https://datatracker.ietf.org/doc/html/rfc1350
