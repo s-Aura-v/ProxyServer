@@ -29,8 +29,6 @@ public class Reactor implements Runnable {
 
 
     // Dispatch Loop
-    // here, you can use as many threads as you want.
-    // but for project 2, only one thread is needed because there’s only one communication.
     @Override
     public void run() {
         try {
@@ -76,7 +74,6 @@ public class Reactor implements Runnable {
             catch(IOException ex) { /* ... */ }
         }
     }
-
     // End of Dispatch Loop
 
 
