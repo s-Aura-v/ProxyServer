@@ -7,30 +7,57 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.Arrays;
+
+import static org.network.Config.WINDOW_SIZE;
+import static org.network.Config.createTestCases;
 
 public class Client implements Runnable {
     @Override
     public void run() {
         try {
-            // Create a SocketChannel and connect to the server at localhost:26880
+            ArrayList<byte[]> window = new ArrayList<>();
+            createTestCases(window);
+
             SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost", 26880));
-            clientChannel.configureBlocking(false);  // Non-blocking mode
+            clientChannel.configureBlocking(false);
 
-            // Send some data to the server
-            byte[] requestPacket = Config.createRequestPacket(true, "read-test");
-            ByteBuffer buffer = ByteBuffer.wrap(requestPacket);
-            clientChannel.write(buffer);
-            System.out.println("Sent message: " + Arrays.toString(requestPacket));
+//            // 1. Send WRQ first
+//            byte[] writeRequest = Config.createRequestPacket(false, "test-file");
+//            clientChannel.write(ByteBuffer.wrap(writeRequest));
+//            System.out.println("Sent WRQ");
 
-            // Close the channel after sending data
+            // Wait for ACK (block 0)
+            ByteBuffer ackBuffer = ByteBuffer.allocate(4);
+            while (ackBuffer.position() < 4) {
+                clientChannel.read(ackBuffer);
+            }
+            ackBuffer.flip();
+            System.out.println("Received initial ACK");
+
+            // 2. Send data packets
+            for (int i = 0; i < window.size(); i++) {
+                clientChannel.write(ByteBuffer.wrap(window.get(i)));
+                System.out.println("Sent DATA block " + (i+1));
+
+                // Wait for ACK
+                ackBuffer.clear();
+                while (ackBuffer.position() < 4) {
+                    clientChannel.read(ackBuffer);
+                }
+                ackBuffer.flip();
+                System.out.println("Received ACK for block " + (i+1));
+            }
+
+//            // 3. Send RRQ to switch to read mode
+//            byte[] readRequest = Config.createRequestPacket(true, "test-file");
+//            clientChannel.write(ByteBuffer.wrap(readRequest));
+//            System.out.println("Sent RRQ");
+
             clientChannel.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public static void start() {
-
     }
 }

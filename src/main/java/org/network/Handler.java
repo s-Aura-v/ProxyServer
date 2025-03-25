@@ -17,8 +17,7 @@ public class Handler implements Runnable {
     static final int READING = 0, SENDING = 1;
     int state = READING;
 
-    public Handler(Selector sel, SocketChannel c)
-            throws IOException {
+    public Handler(Selector sel, SocketChannel c) throws IOException {
         socket = c;
         c.configureBlocking(false);
 
@@ -43,15 +42,14 @@ public class Handler implements Runnable {
         return true;
     }
 
-    void process() { /* ... */ }
+    void process() {
+    }
 
     @Override
     public void run() {
         try {
             if (state == READING) {
                 read();
-            } else if (state == SENDING) {
-                send();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -60,7 +58,14 @@ public class Handler implements Runnable {
 
     // once input is read, set to reading mode so that we can send an ack back
     void read() throws IOException {
-        socket.read(input);
+        // number of bytes read
+        int bytesRead = socket.read(input);
+        input.flip(); // Prepare to read the buffer
+        byte[] receivedData = new byte[input.remaining()];
+        input.get(receivedData);
+        System.out.println("As string: " + new String(receivedData));
+
+
         if (inputIsComplete()) {
             process();
             state = SENDING;
@@ -68,6 +73,7 @@ public class Handler implements Runnable {
             sk.interestOps(SelectionKey.OP_WRITE);
         }
     }
+
 
     // once output is sent, then cancel the key and let the new iteration run
     void send() throws IOException {

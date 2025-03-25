@@ -22,13 +22,15 @@ public class Reactor implements Runnable {
 
         // register what to do when I get a connection, whenever it happens, do it please
         SelectionKey key = serverSocket.register(selector, SelectionKey.OP_ACCEPT);
-
         // Create the Acceptor which in turns is used to make the handler
         key.attach(new Acceptor());
     }
 
 
     // Dispatch Loop
+
+    // this is the main bread and butter
+    // The server is running a selector loop, waiting for new events.
     @Override
     public void run() {
         try {
@@ -38,7 +40,7 @@ public class Reactor implements Runnable {
                 Iterator<SelectionKey> it = selected.iterator();
                 while (it.hasNext()) {
                     SelectionKey key = it.next();
-//                    it.remove(); (should i remove the key?)
+                    it.remove(); //(should i remove the key?)
                     dispatch(key);
                 }
                 selected.clear();
