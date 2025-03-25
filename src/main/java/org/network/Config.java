@@ -33,6 +33,44 @@ public final class Config {
     private Config() {
     }
 
+    // The TCP Sliding Window is an arraylist that stores data packets
+    // the data packets are byte[]
+    static byte[] createTCPSlidingWindow() throws IOException {
+        ArrayList<byte[]> window = new ArrayList<>();
+
+        // TEST CASES
+        createTestCases(window);
+
+        SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost", 26880));
+        clientChannel.configureBlocking(false);  // Non-blocking mode
+
+        byte[] requestPacket = Config.createRequestPacket(true, "read-test");
+        ByteBuffer buffer = ByteBuffer.wrap(requestPacket);
+        clientChannel.write(buffer);
+        System.out.println("Sent message: " + Arrays.toString(requestPacket));
+        buffer.clear();
+
+        // Send some data to the server
+        int leftPointer = 0;
+        int rightPointer = 0;
+
+        while (leftPointer < window.size()) {
+            // Step 1: Send all the packets inside the send-window
+            while ((rightPointer < leftPointer + WINDOW_SIZE)
+                    && (rightPointer < window.size())) {
+                ByteBuffer currentBuffer = ByteBuffer.wrap(window.get(leftPointer));
+                clientChannel.write(currentBuffer);
+                System.out.println("Sent packet: " + rightPointer);
+                rightPointer++;
+            }
+
+            //Check for ACKs then pointer++ (thus adding values to send-window)
+            leftPointer++;
+        }
+        clientChannel.close();
+
+        return new byte[]{0x00, 0x00};
+    }
 
     //byte b = (byte)0xC8;
     //int v1 = b;       // v1 is -56 (0xFFFFFFC8)
@@ -74,45 +112,6 @@ public final class Config {
         System.out.println(Arrays.toString(ackPacket));
 
         return ackPacket;
-    }
-
-    // The TCP Sliding Window is an arraylist that stores data packets
-    // the data packets are byte[]
-    static byte[] createTCPSlidingWindow() throws IOException {
-        ArrayList<byte[]> window = new ArrayList<>();
-
-        // TEST CASES
-        createTestCases(window);
-
-        SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost", 26880));
-        clientChannel.configureBlocking(false);  // Non-blocking mode
-
-        byte[] requestPacket = Config.createRequestPacket(true, "read-test");
-        ByteBuffer buffer = ByteBuffer.wrap(requestPacket);
-        clientChannel.write(buffer);
-        System.out.println("Sent message: " + Arrays.toString(requestPacket));
-        buffer.clear();
-
-        // Send some data to the server
-        int leftPointer = 0;
-        int rightPointer = 0;
-
-        while (leftPointer < window.size()) {
-            // Step 1: Send all the packets inside the send-window
-            while ((rightPointer < leftPointer + WINDOW_SIZE)
-                    && (rightPointer < window.size())) {
-                ByteBuffer currentBuffer = ByteBuffer.wrap(window.get(leftPointer));
-                clientChannel.write(currentBuffer);
-                System.out.println("Sent packet: " + rightPointer);
-                rightPointer++;
-            }
-
-            //Check for ACKs then pointer++ (thus adding values to send-window)
-            leftPointer++;
-        }
-        clientChannel.close();
-
-        return new byte[]{0x00, 0x00};
     }
 
     // Creating the test cases to see if the window sliding mechanic works
@@ -160,9 +159,6 @@ public final class Config {
         byte[] ackPacket = createACKPacket(65534);
         int receivedBlockNum = ((ackPacket[2] & 0xFF) << 8) | (ackPacket[3] & 0xFF);
         System.out.println(receivedBlockNum);
-
-
-//        createTCPSlidingWindow();
     }
 
     // Deprecated, but still worth understanding.
