@@ -1,5 +1,7 @@
 package org.network;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
@@ -20,7 +22,8 @@ Once the project works, I'll move them to the appropriate class.
  */
 public final class Config {
     // TCP SLIDING WINDOW
-    public static final int WINDOW_SIZE = 4;
+    public static final int SEND_WINDOW_SIZE = 4;
+    public static final int MAX_PACKET_SIZE = 1024;
 
     // PACKET
     // OPCODE: 1 = READ | 2 = WRITE | 3 = DATA | 4 = ACK | 5 = ERROR | 6 = OACK
@@ -35,41 +38,15 @@ public final class Config {
 
     // The TCP Sliding Window is an arraylist that stores data packets
     // the data packets are byte[]
-    static byte[] createTCPSlidingWindow() throws IOException {
+    static ArrayList<byte[]> createTCPSlidingWindow(byte[] imageData) throws IOException {
         ArrayList<byte[]> window = new ArrayList<>();
+//        int packetSize = MAX_PACKET_SIZE -
+        for (int i = 0; i < imageData.length; i++) {
 
-        // TEST CASES
-        createTestCases(window);
-
-        SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost", 26880));
-        clientChannel.configureBlocking(false);  // Non-blocking mode
-
-        byte[] requestPacket = Config.createRequestPacket(true, "read-test");
-        ByteBuffer buffer = ByteBuffer.wrap(requestPacket);
-        clientChannel.write(buffer);
-        System.out.println("Sent message: " + Arrays.toString(requestPacket));
-        buffer.clear();
-
-        // Send some data to the server
-        int leftPointer = 0;
-        int rightPointer = 0;
-
-        while (leftPointer < window.size()) {
-            // Step 1: Send all the packets inside the send-window
-            while ((rightPointer < leftPointer + WINDOW_SIZE)
-                    && (rightPointer < window.size())) {
-                ByteBuffer currentBuffer = ByteBuffer.wrap(window.get(leftPointer));
-                clientChannel.write(currentBuffer);
-                System.out.println("Sent packet: " + rightPointer);
-                rightPointer++;
-            }
-
-            //Check for ACKs then pointer++ (thus adding values to send-window)
-            leftPointer++;
         }
-        clientChannel.close();
 
-        return new byte[]{0x00, 0x00};
+
+        return window;
     }
 
     //byte b = (byte)0xC8;
@@ -130,6 +107,21 @@ public final class Config {
         Files.copy(in, Paths.get("src/main/resources/img-cache/" + fileName), StandardCopyOption.REPLACE_EXISTING);
     }
 
+    // convert image to bytes
+    static byte[] imageToBytes(String filePath) throws IOException {
+        File file = new File(filePath);
+        byte[] imageBytes = Files.readAllBytes(file.toPath());
+        System.out.println(imageBytes.length);
+        return imageBytes;
+    }
+
+    // convert bytes to images
+    static void bytesToImage(byte[] imageBytes) throws IOException {
+        BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageBytes));
+        File outputfile = new File("src/main/resources/img-cache/test-case.jpg");
+        ImageIO.write(img, "jpg", outputfile);
+    }
+
     /**
      * Changes the initial key for encoding and decoding purposes
      *
@@ -159,6 +151,14 @@ public final class Config {
         byte[] ackPacket = createACKPacket(65534);
         int receivedBlockNum = ((ackPacket[2] & 0xFF) << 8) | (ackPacket[3] & 0xFF);
         System.out.println(receivedBlockNum);
+
+
+        // image download
+//        byte[] image = imageToBytes("src/main/resources/test-cases/hunter.jpg");
+//        bytesToImage(image);
+
+        byte[] image2 = imageToBytes("src/main/resources/test-cases/qr-code.jpeg");
+        bytesToImage(image2);
     }
 
     // Deprecated, but still worth understanding.

@@ -65,6 +65,7 @@ public class Handler implements Runnable {
             // For data packets, parse block number and ACK it
             int blockNumber = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
             output = ByteBuffer.wrap(Config.createACKPacket(blockNumber));
+            // Save it to cache
         }
 
         // Switch to sending mode
