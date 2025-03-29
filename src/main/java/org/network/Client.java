@@ -17,7 +17,7 @@ public class Client implements Runnable {
     public void run() {
         try {
             ArrayList<byte[]> window = new ArrayList<>();
-            createTestCases(window);
+//            createTestCases(window);
 
             SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost", 26880));
             clientChannel.configureBlocking(false);
