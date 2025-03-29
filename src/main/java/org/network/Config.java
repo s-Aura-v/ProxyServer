@@ -1,18 +1,14 @@
 package org.network;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.*;
-import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Properties;
 
 /*
 For now, I'll keep all my constants in here.
@@ -20,7 +16,11 @@ Once the project works, I'll move them to the appropriate class.
  */
 public final class Config {
     // TCP SLIDING WINDOW
-    public static final int WINDOW_SIZE = 4;
+    public static final int SEND_WINDOW_SIZE = 4;
+    public static final int MAX_PACKET_SIZE = 512;
+    public static final int OPCODE_SIZE = 2;
+    public static final int BLOCK_SIZE = 2;
+
 
     // PACKET
     // OPCODE: 1 = READ | 2 = WRITE | 3 = DATA | 4 = ACK | 5 = ERROR | 6 = OACK
@@ -33,13 +33,27 @@ public final class Config {
     private Config() {
     }
 
+    // The TCP Sliding Window is an arraylist that stores data packets
+    // the data packets are byte[]
+    static ArrayList<byte[]> createTCPSlidingWindow(byte[] imageData) throws IOException {
+        ArrayList<byte[]> window = new ArrayList<>();
+        int packetSize = MAX_PACKET_SIZE - OPCODE_SIZE - BLOCK_SIZE;
+        for (int i = 0; i < imageData.length; i+=packetSize) {
+            byte[] partition = Arrays.copyOfRange(imageData, i, Math.min(imageData.length, i + packetSize));
+            byte[] packet = createDataPacket(partition, i);
+            window.add(packet);
+        }
+        System.out.println(window.size());
+        return window;
+    }
+
 
     //byte b = (byte)0xC8;
     //int v1 = b;       // v1 is -56 (0xFFFFFFC8)
     //int v2 = b & 0xFF // v2 is 200 (0x000000C8)
     // there's a reason v2 is better
 
-    static byte[] createDataPacket(String data, int blockNum) throws IOException {
+    static byte[] createDataPacket(byte[] data, int blockNum) throws IOException {
         // Data Packets: opcode + block # + data
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -48,7 +62,7 @@ public final class Config {
         // 16 bytes = 128 bits = 2^128 amount of bits
         output.write((byte) (blockNum >> 8)); // High byte
         output.write((byte) (blockNum & 0xFF)); // Low byte
-        output.write(data.getBytes());
+        output.write(data);
         byte[] dataPacket = output.toByteArray();
 
         // Debug for formula
@@ -56,6 +70,12 @@ public final class Config {
         System.out.println(Arrays.toString(dataPacket));
 
         return dataPacket;
+    }
+
+    static byte[] extractPacketData(byte[] dataPacket) {
+        byte[] data = new byte[dataPacket.length - OPCODE_SIZE - BLOCK_SIZE];
+        System.arraycopy(dataPacket, OPCODE_SIZE + BLOCK_SIZE, data, 0, dataPacket.length - OPCODE_SIZE - BLOCK_SIZE);
+        return data;
     }
 
     // the ack packet is used to slide the window over
@@ -76,59 +96,35 @@ public final class Config {
         return ackPacket;
     }
 
-    // The TCP Sliding Window is an arraylist that stores data packets
-    // the data packets are byte[]
-    static byte[] createTCPSlidingWindow() throws IOException {
-        ArrayList<byte[]> window = new ArrayList<>();
-
-        // TEST CASES
-        createTestCases(window);
-
-        SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost", 26880));
-        clientChannel.configureBlocking(false);  // Non-blocking mode
-
-        byte[] requestPacket = Config.createRequestPacket(true, "read-test");
-        ByteBuffer buffer = ByteBuffer.wrap(requestPacket);
-        clientChannel.write(buffer);
-        System.out.println("Sent message: " + Arrays.toString(requestPacket));
-        buffer.clear();
-
-        // Send some data to the server
-        int leftPointer = 0;
-        int rightPointer = 0;
-
-        while (leftPointer < window.size()) {
-            // Step 1: Send all the packets inside the send-window
-            while ((rightPointer < leftPointer + WINDOW_SIZE)
-                    && (rightPointer < window.size())) {
-                ByteBuffer currentBuffer = ByteBuffer.wrap(window.get(leftPointer));
-                clientChannel.write(currentBuffer);
-                System.out.println("Sent packet: " + rightPointer);
-                rightPointer++;
-            }
-
-            //Check for ACKs then pointer++ (thus adding values to send-window)
-            leftPointer++;
-        }
-        clientChannel.close();
-
-        return new byte[]{0x00, 0x00};
-    }
-
     // Creating the test cases to see if the window sliding mechanic works
-    static void createTestCases(ArrayList<byte[]> window) throws IOException {
-        window.add(0, createDataPacket("https://s-aura-v.com/assets/F24_P3-BlldWeW3.png", 1));
-        window.add(1, createDataPacket("https://s-aura-v.com/assets/F24_P2-CxOsZN5F.png", 2));
-        window.add(2, createDataPacket("https://s-aura-v.com/assets/F24_P1-C98K-uUV.png", 3));
-        window.add(3, createDataPacket("https://cdn.gamerbraves.com/2022/01/kirby-1.jpg", 4));
-        window.add(4, createDataPacket("https://miro.medium.com/v2/resize:fit:401/1*FkSpGx7vW0irUrDSjc0X-Q.jpeg", 5));
-        window.add(5, createDataPacket("https://static.wikia.nocookie.net/severance-series/images/6/62/Promo-Severance.jpg", 6));
-    }
+//    static void createTestCases(ArrayList<byte[]> window) throws IOException {
+//        window.add(0, createDataPacket("https://s-aura-v.com/assets/F24_P3-BlldWeW3.png", 1));
+//        window.add(1, createDataPacket("https://s-aura-v.com/assets/F24_P2-CxOsZN5F.png", 2));
+//        window.add(2, createDataPacket("https://s-aura-v.com/assets/F24_P1-C98K-uUV.png", 3));
+//        window.add(3, createDataPacket("https://cdn.gamerbraves.com/2022/01/kirby-1.jpg", 4));
+//        window.add(4, createDataPacket("https://miro.medium.com/v2/resize:fit:401/1*FkSpGx7vW0irUrDSjc0X-Q.jpeg", 5));
+//        window.add(5, createDataPacket("https://static.wikia.nocookie.net/severance-series/images/6/62/Promo-Severance.jpg", 6));
+//    }
 
     // Download URL into machine
     static void downloadImage(String fileName, String fileURL) throws IOException {
         InputStream in = new URL(fileURL).openStream();
         Files.copy(in, Paths.get("src/main/resources/img-cache/" + fileName), StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    // convert image to bytes
+    static byte[] imageToBytes(String filePath) throws IOException {
+        File file = new File(filePath);
+        byte[] imageBytes = Files.readAllBytes(file.toPath());
+        System.out.println(imageBytes.length);
+        return imageBytes;
+    }
+
+    // convert bytes to images
+    static void bytesToImage(byte[] imageBytes) throws IOException {
+        BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageBytes));
+        File outputfile = new File("src/main/resources/img-cache/test-case.jpg");
+        ImageIO.write(img, "jpg", outputfile);
     }
 
     /**
@@ -146,9 +142,9 @@ public final class Config {
 
     public static void main(String[] args) throws IOException {
         System.out.println("Data Packet Debug");
-        createDataPacket("this is the real data", 1);
-        createDataPacket("there's less data", 99999999);
-
+//        createDataPacket("this is the real data", 1);
+//        createDataPacket("there's less data", 99999999);
+//
         System.out.println("ACK Packet Debug");
         createACKPacket(10);
         // Index:  0    1    2    3
@@ -162,7 +158,24 @@ public final class Config {
         System.out.println(receivedBlockNum);
 
 
-//        createTCPSlidingWindow();
+        // image download
+//        byte[] image = imageToBytes("src/main/resources/test-cases/hunter.jpg");
+//        bytesToImage(image);
+//
+        byte[] image2 = imageToBytes("src/main/resources/test-cases/qr-code.jpeg");
+//        bytesToImage(image2);
+
+
+        // TESTING PACKETS TO IMAGE
+        ArrayList<byte[]> imagePackets = createTCPSlidingWindow(image2);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        for (byte[] imagePacket : imagePackets) {
+            byte[] extracted = extractPacketData(imagePacket);
+            output.write(extracted);
+        }
+        byte[] finalImageFrame = output.toByteArray();
+        bytesToImage(finalImageFrame);
+
     }
 
     // Deprecated, but still worth understanding.

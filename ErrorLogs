@@ -4,6 +4,9 @@ Solution: Make it a non blocking
 
 2. Splitting bytes in high and low bytes for block number in data packet
 
+3. It might be better to work chronologically on how the system works because adding features you think you need will not always be true
+
+
 Architect:
 1. Start Reactor
 2. Reactor waits for client message
@@ -15,3 +18,4 @@ Architect:
 Resources:
 https://stackoverflow.com/questions/905781/how-to-read-and-write-data-and-accepting-connection-using-socket-channel
 https://datatracker.ietf.org/doc/html/rfc1350
+https://docs.oracle.com/javase/tutorial/2d/images/saveimage.html

@@ -44,6 +44,8 @@ public class Handler implements Runnable {
     }
 
     void read() throws IOException {
+        // IMPORTANT: Clear buffer before reading
+        input.clear();
         int bytesRead = socket.read(input);
         if (bytesRead == -1) {
             sk.cancel();
@@ -56,43 +58,30 @@ public class Handler implements Runnable {
         input.get(receivedData);
         System.out.println(BLUE + "Received: " + RESET + new String(receivedData));
 
-        // Prepare ACK response
-        output = ByteBuffer.wrap(Config.createACKPacket(0));
+        // Check if this is a WRQ (first packet)
+        if (receivedData.length >= 2 && receivedData[0] == 0 && receivedData[1] == 2) {
+            output = ByteBuffer.wrap(Config.createACKPacket(0));
+        } else {
+            // For data packets, parse block number and ACK it
+            int blockNumber = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
+            output = ByteBuffer.wrap(Config.createACKPacket(blockNumber));
+            // Save it to cache
+        }
 
         // Switch to sending mode
         state = SENDING;
         sk.interestOps(SelectionKey.OP_WRITE);
     }
 
-
-
-    // once input is read, set to reading mode so that we can send an ack back
     void write() throws IOException {
-        // number of bytes read
-        int bytesRead = socket.read(input);
-        input.flip(); // Prepare to read the buffer
-        byte[] receivedData = new byte[input.remaining()];
-        input.get(receivedData);
-        System.out.println("As string: " + new String(receivedData));
-        output = ByteBuffer.wrap(Config.createACKPacket(0));
-        send();
-    }
-
-    // once output is sent, then cancel the key and let the new iteration run
-    void send() throws IOException {
         socket.write(output);
-        if (inputIsComplete()) {
-            sk.cancel(); // Close connection after sending ACK
-            socket.close();
-        } else {
-            state = READING;
-            sk.interestOps(SelectionKey.OP_READ);
+        if (output.hasRemaining()) {
+            // Not all bytes were written, keep trying
+            return;
         }
-    }
 
-
-    private boolean inputIsComplete() {
-
-        return true;
+        // Switch back to reading mode for next packet
+        state = READING;
+        sk.interestOps(SelectionKey.OP_READ);
     }
 }
