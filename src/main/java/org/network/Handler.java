@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.Arrays;
 
 import static org.network.Config.*;
 
@@ -22,11 +23,9 @@ public class Handler implements Runnable {
     public Handler(Selector sel, SocketChannel c) throws IOException {
         socket = c;
         c.configureBlocking(false);
-
-        // Optionally try first read now
-        sk = socket.register(sel, 0);
+        // 0 vs 1? causing issue.
+        sk = socket.register(sel, SelectionKey.OP_READ);
         sk.attach(this);
-        sk.interestOps(SelectionKey.OP_READ);
         sel.wakeup();
     }
 
@@ -39,17 +38,28 @@ public class Handler implements Runnable {
                 write();
             }
         } catch (IOException e) {
+            try {
+                socket.close();
+            } catch (IOException ex) {
+                // ignore
+            }
+            sk.cancel();
             e.printStackTrace();
         }
     }
 
     void read() throws IOException {
-        // IMPORTANT: Clear buffer before reading
+        System.out.println("Entering READ state");
         input.clear();
         int bytesRead = socket.read(input);
+
         if (bytesRead == -1) {
+            System.out.println("Connection closed by client");
             sk.cancel();
             socket.close();
+            return;
+        } else if (bytesRead == 0) {
+            System.out.println("Read 0 bytes, waiting for more data");
             return;
         }
 
@@ -58,30 +68,35 @@ public class Handler implements Runnable {
         input.get(receivedData);
         System.out.println(BLUE + "Received: " + RESET + new String(receivedData));
 
-        // Check if this is a WRQ (first packet)
+        // Process packet
         if (receivedData.length >= 2 && receivedData[0] == 0 && receivedData[1] == 2) {
             output = ByteBuffer.wrap(Config.createACKPacket(0));
+            System.out.println("WRQ received, sending ACK");
         } else {
-            // For data packets, parse block number and ACK it
             int blockNumber = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
+            System.out.println("Data packet received, block #" + blockNumber);
             output = ByteBuffer.wrap(Config.createACKPacket(blockNumber));
-            // Save it to cache
         }
 
-        // Switch to sending mode
         state = SENDING;
         sk.interestOps(SelectionKey.OP_WRITE);
+        sk.selector().wakeup();
     }
 
     void write() throws IOException {
+        System.out.println("Entering WRITE state");
         socket.write(output);
+
         if (output.hasRemaining()) {
-            // Not all bytes were written, keep trying
+            System.out.println("Output buffer not empty, will continue writing");
             return;
         }
 
-        // Switch back to reading mode for next packet
+        System.out.println("Write completed, switching to READ");
+        output.clear();
         state = READING;
         sk.interestOps(SelectionKey.OP_READ);
+        sk.selector().wakeup();
     }
 }
+

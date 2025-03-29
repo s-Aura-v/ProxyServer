@@ -2,17 +2,16 @@ package org.network;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.nio.ByteBuffer;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import static org.network.Config.*;
 
 public class Client implements Runnable {
+    private int urlNum = 1;
+
     @Override
     public void run() {
         try {
@@ -37,164 +36,47 @@ public class Client implements Runnable {
             ackBuffer.flip();
             System.out.println(YELLOW + "Client: " + RESET + "Received initial ACK");
 
-//            long startTime = System.currentTimeMillis();
-//            // Sending Normally
-//            for (int i = 0; i < window.size(); i++) {
-//                clientChannel.write(ByteBuffer.wrap(window.get(i)));
-//                System.out.println(YELLOW + "Client: " + RESET + "Sent DATA block " + (i + 1));
-//
-//                // Wait for ACK
-//                ackBuffer.clear();
-//                while (ackBuffer.position() < 4) {
-//                    clientChannel.read(ackBuffer);
-//                }
-//
-//                ackBuffer.flip();
-//                byte[] buffered = Arrays.copyOf(ackBuffer.array(), ackBuffer.limit());
-//                System.out.println(YELLOW + "Client: " + RESET + "Received Ack: " + Arrays.toString(buffered));
-//            }
+            // Sending the data
+//            Scanner scanner = new Scanner(System.in);
+//            String url = scanner.nextLine();
+//            scanner.close();
 
-//            int leftPointer = 0;
-//            int rightPointer = Math.min(SEND_WINDOW_SIZE, window.size());
-//
-//            while (leftPointer < window.size()) {
-//                // Send all packets in the current window
-//                for (int i = leftPointer; i < rightPointer; i++) {
-//                    clientChannel.write(ByteBuffer.wrap(window.get(i)));
-//                }
-//
-//                // Wait for an acknowledgment for each packet
-//                for (int i = 0; i < (rightPointer - leftPointer); i++) {
-//                    ackBuffer = ByteBuffer.allocate(4);
-//                    while (ackBuffer.position() < 4) {  // Ensure full ACK read
-//                        clientChannel.read(ackBuffer);
-//                    }
-//                    ackBuffer.flip();
-//                    byte[] ack = Arrays.copyOf(ackBuffer.array(), ackBuffer.limit());
-//                    System.out.println("Client: Received Ack: " + Arrays.toString(ack));
-//
-//                    // Move the sliding window forward
-//                    if (rightPointer < window.size()) {
-//                        rightPointer++;
-//                    }
-//                    leftPointer++;
-//                }
-//            }
+            String url = "https://m.media-amazon.com/images/M/MV5BNTc4ODVkMmMtZWY3NS00OWI4LWE1YmYtN2NkNDA3ZjcyNTkxXkEyXkFqcGc@._V1_.jpg";
 
-            int leftPointer = 0;
-            int rightPointer = Math.min(SEND_WINDOW_SIZE, window.size());
+            byte[] urlData = url.getBytes();
+            byte[] urlPacket = createDataPacket(urlData, urlNum);
+            System.out.println(YELLOW + "Client: " + RESET + "Sending url " + urlNum);
+            urlNum++;
+            clientChannel.write(ByteBuffer.wrap(urlPacket));
 
-            while (leftPointer < window.size()) {
-                // Send all packets in the current window
-                for (int i = leftPointer; i < rightPointer; i++) {
-                    clientChannel.write(ByteBuffer.wrap(window.get(i)));
-                    System.out.println("Sent packet: " + i);  // For debugging
-                }
+            ackBuffer.clear();
+            clientChannel.read(ackBuffer);
+            ackBuffer.flip();
+            System.out.println(YELLOW + "Client: " + RESET + "Received ACK " + urlNum);
+//            System.out.println(YELLOW + "Client: " + RESET + ackBuffer.);
 
-                // Wait for acknowledgments
-                int acksReceived = 0;
-                while (acksReceived < (rightPointer - leftPointer) && leftPointer < window.size()) {
-                    ackBuffer = ByteBuffer.allocate(4);
-                    while (ackBuffer.position() < 4) {  // Ensure full ACK read
-                        clientChannel.read(ackBuffer);
-                    }
-                    ackBuffer.flip();
-                    byte[] ack = Arrays.copyOf(ackBuffer.array(), ackBuffer.limit());
-                    System.out.println("Client: Received Ack: " + Arrays.toString(ack));
+            byte[] bytes = new byte[ackBuffer.remaining()];
+            ackBuffer.get(bytes);  // Copy data into byte array
+            System.out.println("Received ACK: " + new String(bytes, StandardCharsets.UTF_8));
 
-                    acksReceived++;
-                    leftPointer++;
 
-                    // Slide the window forward if possible
-                    if (rightPointer < window.size()) {
-                        rightPointer++;
-                    }
-                }
-            }
+            String url2 = "https://images.unsplash.com/photo-1562362898-d1a9d124fd77?q=80&w=2109&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
-//
-//
-//            // Step 1: Send the send-window
-//            for (int i = 0; i < WINDOW_SIZE; i++) {
-//                clientChannel.write(ByteBuffer.wrap(window.get(i)));
-//                ackBuffer.clear();
-//            }
-//
-//            // Step 2: Receive and continue sliding the window
-//            for (int i = WINDOW_SIZE; i < window.size(); i++) {
-//                while (ackBuffer.position() < 4) {
-//                    clientChannel.read(ackBuffer);
-//                    ackBuffer.flip();
-//                    byte[] buffered = Arrays.copyOf(ackBuffer.array(), ackBuffer.limit());
-//                    System.out.println(YELLOW + "Client: " + RESET + "Received Ack: " + Arrays.toString(buffered));
-//                    clientChannel.write(ByteBuffer.wrap(window.get(i)));
-//                    ackBuffer.clear();
-//
-//                }
-//            }
-//
-//            // Send some data to the server
-//            int leftPointer = 0;
-//            int rightPointer = 0;
-//
-//            while (leftPointer < window.size()) {
-//                // Step 1: Send all the packets inside the send-window
-//                while ((rightPointer < leftPointer + WINDOW_SIZE)
-//                        && (rightPointer < window.size())) {
-//                    clientChannel.write(ByteBuffer.wrap(window.get(leftPointer)));
-//                    System.out.println(YELLOW + "Client: " + RESET + "Sent DATA block " + (leftPointer + 1));
-//
-//                    // Wait for ACK
-//                    ackBuffer.clear();
-//                    while (ackBuffer.position() < 4) {
-//                        clientChannel.read(ackBuffer);
-//                    }
-//
-//                    ackBuffer.flip();
-//                    byte[] buffered = Arrays.copyOf(ackBuffer.array(), ackBuffer.limit());
-//                    System.out.println(YELLOW + "Client: " + RESET + "Received Ack: " + Arrays.toString(buffered));
-//                }
-//                leftPointer++;
-//            }
+            byte[] urlData2 = url2.getBytes();
+            byte[] urlPacket2 = createDataPacket(urlData2, urlNum);
+            System.out.println(YELLOW + "Client: " + RESET + "Sending url " + urlNum);
+            urlNum++;
+            clientChannel.write(ByteBuffer.wrap(urlPacket2));
 
-//            final int WINDOW_SIZE = 4;
-//            int base = 0; // Tracks the oldest un-ACKed packet
-//            int nextSeqNum = 0; // Tracks next packet to send
-//
-//            long timestamp = System.currentTimeMillis();
-//            while (base < window.size()) {
-//                // Send all packets in the current window
-//                while (nextSeqNum < base + WINDOW_SIZE && nextSeqNum < window.size()) {
-//                    clientChannel.write(ByteBuffer.wrap(window.get(nextSeqNum)));
-//                    System.out.println(YELLOW + "Client: " + RESET + "Sent DATA block " + (nextSeqNum + 1));
-//                    nextSeqNum++;
-//                }
-//
-//                // Wait for ACKs
-//                ackBuffer.clear();
-//                while (ackBuffer.position() < 4) {
-//                    int bytesRead = clientChannel.read(ackBuffer);
-//                    if (bytesRead == -1) throw new IOException("Connection closed");
-//                }
-//                ackBuffer.flip();
-//
-//                // Process ACK
-//                byte[] ackData = Arrays.copyOf(ackBuffer.array(), ackBuffer.limit());
-//                int ackBlockNum = ((ackData[2] & 0xff) << 8 | (ackData[3] & 0xff));
-//                System.out.println(YELLOW + "Client: " + RESET + "Received ACK: " + ackBlockNum);
-//
-//                // Slide window
-//                if (ackBlockNum >= base) {
-//                    base = ackBlockNum + 1;
-//                }
-//
-//                // If we've sent all packets but not all are ACKed
-//                if (nextSeqNum == window.size() && base < window.size()) {
-//                    // Handle timeout and retransmission here if needed
-//                }
-//            }
-//            long endTime = System.currentTimeMillis();
-//            System.out.println(endTime - timestamp);
+            ackBuffer.clear();
+            clientChannel.read(ackBuffer);
+            ackBuffer.flip();
+            System.out.println(YELLOW + "Client: " + RESET + "Received ACK " + urlNum);
+//            System.out.println(YELLOW + "Client: " + RESET + ackBuffer.);
+
+            byte[] bytes2 = new byte[ackBuffer.remaining()];
+            ackBuffer.get(bytes2);  // Copy data into byte array
+            System.out.println("Received ACK: " + new String(bytes2, StandardCharsets.UTF_8));
 
 
             clientChannel.close();

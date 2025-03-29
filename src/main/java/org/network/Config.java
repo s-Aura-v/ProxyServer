@@ -66,8 +66,8 @@ public final class Config {
         byte[] dataPacket = output.toByteArray();
 
         // Debug for formula
-        System.out.print(dataPacket.length + " bytes: ");
-        System.out.println(Arrays.toString(dataPacket));
+//        System.out.print(dataPacket.length + " bytes: ");
+//        System.out.println(Arrays.toString(dataPacket));
 
         return dataPacket;
     }
@@ -201,8 +201,8 @@ public final class Config {
 
         // Debug for formula
         int totalSize = (2) + (title.getBytes().length + 1) + (MODE.getBytes().length + 1);
-        System.out.print("Created Packet: " + totalSize + " bytes: ");
-        System.out.println(Arrays.toString(requestPacket));
+//        System.out.print("Created Packet: " + totalSize + " bytes: ");
+//        System.out.println(Arrays.toString(requestPacket));
 
         return requestPacket;
     }
