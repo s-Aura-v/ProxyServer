@@ -6,6 +6,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import static org.network.Config.*;
@@ -82,18 +83,37 @@ public class Handler implements Runnable {
 
             byte[] packetData = Arrays.copyOfRange(receivedData, 4, receivedData.length);
             String url = new String(packetData, StandardCharsets.UTF_8);
-            if (cache.hasKey(url)) {
-                // get cached data and send
-            } else {
-               // add actual image bytes to cache
+            String safeUrl = url.replaceAll("/","__");
+            System.out.println(safeUrl);
+
+
+//            if (cache.hasKey(url)) {
+//                // get cached data and send
+//            } else {
+//               // add actual image bytes to cache
+//            }
+
+            downloadImage(safeUrl);
+            byte[] imageBytes = imageToBytes(CACHE_PATH + safeUrl);
+            ArrayList<byte[]> tcpSlidingWindow = createTCPSlidingWindow(imageBytes);
+            System.out.println(tcpSlidingWindow);
+
+            int leftPointer = 0;
+            int rightPointer = leftPointer + 1;
+            while (leftPointer < tcpSlidingWindow.size()) {
+                while ((rightPointer < leftPointer + SEND_WINDOW_SIZE) && (rightPointer < tcpSlidingWindow.size())) {
+                    output = ByteBuffer.wrap(tcpSlidingWindow.get(leftPointer));
+                    socket.write(output);
+                    System.out.println("writing");
+                    output.clear();
+                    rightPointer++;
+                }
+                leftPointer++;
             }
-            downloadImage(url);
-
-
 
             System.out.println(Arrays.toString(packetData));
-            System.out.println("Data packet received, block #" + blockNumber);
-            output = ByteBuffer.wrap(Config.createACKPacket(blockNumber));
+            System.out.println("Write Complete" + blockNumber);
+            output = ByteBuffer.wrap(Config.createACKPacket(0));
         }
 
         state = SENDING;

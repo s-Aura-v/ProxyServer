@@ -21,9 +21,10 @@ public final class Config {
     public static final int OPCODE_SIZE = 2;
     public static final int BLOCK_SIZE = 2;
 
+    public static final String CACHE_PATH = "src/main/resources/img-cache/";
 
     // PACKET
-    // OPCODE: 1 = READ | 2 = WRITE | 3 = DATA | 4 = ACK | 5 = ERROR | 6 = OACK
+    // OPCODE: 1 = READ | 2 = WRITE | 3 = DATA | 4 = ACK | 5 = ERROR | 6 = OACK | 7 = DATA PACKET COMPLETE (custom)
 
     // MISC
     double DROP_RATE = 0.01;
@@ -43,6 +44,7 @@ public final class Config {
             byte[] packet = createDataPacket(partition, i);
             window.add(packet);
         }
+
         System.out.println(window.size());
         return window;
     }
@@ -96,20 +98,12 @@ public final class Config {
         return ackPacket;
     }
 
-    // Creating the test cases to see if the window sliding mechanic works
-//    static void createTestCases(ArrayList<byte[]> window) throws IOException {
-//        window.add(0, createDataPacket("https://s-aura-v.com/assets/F24_P3-BlldWeW3.png", 1));
-//        window.add(1, createDataPacket("https://s-aura-v.com/assets/F24_P2-CxOsZN5F.png", 2));
-//        window.add(2, createDataPacket("https://s-aura-v.com/assets/F24_P1-C98K-uUV.png", 3));
-//        window.add(3, createDataPacket("https://cdn.gamerbraves.com/2022/01/kirby-1.jpg", 4));
-//        window.add(4, createDataPacket("https://miro.medium.com/v2/resize:fit:401/1*FkSpGx7vW0irUrDSjc0X-Q.jpeg", 5));
-//        window.add(5, createDataPacket("https://static.wikia.nocookie.net/severance-series/images/6/62/Promo-Severance.jpg", 6));
-//    }
-
     // Download URL into machine
-    static void downloadImage(String fileURL) throws IOException {
+    static void downloadImage(String safeURL) throws IOException {
+        String fileURL = safeURL.replaceAll("__", "/");
+        System.out.println(fileURL);
         InputStream in = new URL(fileURL).openStream();
-        Files.copy(in, Paths.get("src/main/resources/img-cache/" + fileURL), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(in, Paths.get("src/main/resources/img-cache/" + safeURL), StandardCopyOption.REPLACE_EXISTING);
     }
 
     // convert image to bytes

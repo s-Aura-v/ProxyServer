@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import static org.network.Config.*;
 
@@ -41,7 +42,7 @@ public class Client implements Runnable {
 //            String url = scanner.nextLine();
 //            scanner.close();
 
-            String url = "m.media-amazon.com/images/M/MV5BNTc4ODVkMmMtZWY3NS00OWI4LWE1YmYtN2NkNDA3ZjcyNTkxXkEyXkFqcGc@._V1_.jpg";
+            String url = "https://m.media-amazon.com/images/M/MV5BNTc4ODVkMmMtZWY3NS00OWI4LWE1YmYtN2NkNDA3ZjcyNTkxXkEyXkFqcGc@._V1_.jpg";
 
             byte[] urlData = url.getBytes();
             byte[] urlPacket = createDataPacket(urlData, urlNum);
@@ -49,34 +50,61 @@ public class Client implements Runnable {
             urlNum++;
             clientChannel.write(ByteBuffer.wrap(urlPacket));
 
-            ackBuffer.clear();
-            clientChannel.read(ackBuffer);
-            ackBuffer.flip();
-            System.out.println(YELLOW + "Client: " + RESET + "Received ACK " + urlNum);
-//            System.out.println(YELLOW + "Client: " + RESET + ackBuffer.);
+            ByteBuffer dataBuffer = ByteBuffer.allocate(MAX_PACKET_SIZE);
+            ArrayList<byte[]> packets = new ArrayList<>();
+            boolean finalPacket = false;
 
-            byte[] bytes = new byte[ackBuffer.remaining()];
-            ackBuffer.get(bytes);  // Copy data into byte array
-            System.out.println("Received ACK: " + new String(bytes, StandardCharsets.UTF_8));
+            while (!finalPacket) {
+                while (dataBuffer.position() < MAX_PACKET_SIZE) {
+                    clientChannel.read(dataBuffer);
+                }
+                dataBuffer.flip();
+
+                byte[] data = new byte[dataBuffer.limit()];
+                dataBuffer.get(data);
+                if (data[0] == 0 && data[1] == 2) {
+                    finalPacket = true;
+                } else {
+                    packets.add(data);
+                    dataBuffer.clear();
+                }
+            }
+            System.out.println( "all packets collected: " + packets.size());
 
 
-            String url2 = "images.unsplash.com/photo-1562362898-d1a9d124fd77?q=80&w=2109&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+//            ackBuffer.clear();
+//            clientChannel.read(ackBuffer);
+//            ackBuffer.flip();
+//            System.out.println(YELLOW + "Client: " + RESET + "Received ACK " + urlNum);
+////            System.out.println(YELLOW + "Client: " + RESET + ackBuffer.);
 
-            byte[] urlData2 = url2.getBytes();
-            byte[] urlPacket2 = createDataPacket(urlData2, urlNum);
-            System.out.println(YELLOW + "Client: " + RESET + "Sending url " + urlNum);
-            urlNum++;
-            clientChannel.write(ByteBuffer.wrap(urlPacket2));
+//            byte[] bytes = new byte[ackBuffer.remaining()];
+//            ackBuffer.get(bytes);  // Copy data into byte array
+//            System.out.println("Received ACK: " + new String(bytes, StandardCharsets.UTF_8));
 
-            ackBuffer.clear();
-            clientChannel.read(ackBuffer);
-            ackBuffer.flip();
-            System.out.println(YELLOW + "Client: " + RESET + "Received ACK " + urlNum);
-//            System.out.println(YELLOW + "Client: " + RESET + ackBuffer.);
 
-            byte[] bytes2 = new byte[ackBuffer.remaining()];
-            ackBuffer.get(bytes2);  // Copy data into byte array
-            System.out.println("Received ACK: " + new String(bytes2, StandardCharsets.UTF_8));
+
+
+
+
+
+//            String url2 = "https://s-aura-v.com/assets/F24_P1-C98K-uUV.png";
+//
+//            byte[] urlData2 = url2.getBytes();
+//            byte[] urlPacket2 = createDataPacket(urlData2, urlNum);
+//            System.out.println(YELLOW + "Client: " + RESET + "Sending url " + urlNum);
+//            urlNum++;
+//            clientChannel.write(ByteBuffer.wrap(urlPacket2));
+//
+//            ackBuffer.clear();
+//            clientChannel.read(ackBuffer);
+//            ackBuffer.flip();
+//            System.out.println(YELLOW + "Client: " + RESET + "Received ACK " + urlNum);
+////            System.out.println(YELLOW + "Client: " + RESET + ackBuffer.);
+//
+//            byte[] bytes2 = new byte[ackBuffer.remaining()];
+//            ackBuffer.get(bytes2);  // Copy data into byte array
+//            System.out.println("Received ACK: " + new String(bytes2, StandardCharsets.UTF_8));
 
 
             clientChannel.close();
