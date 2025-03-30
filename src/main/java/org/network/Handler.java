@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import static org.network.Config.*;
@@ -20,7 +21,10 @@ public class Handler implements Runnable {
     static final int READING = 0, SENDING = 1;
     int state = READING;
 
+    static Cache cache;
+
     public Handler(Selector sel, SocketChannel c) throws IOException {
+        cache = new Cache();
         socket = c;
         c.configureBlocking(false);
         // 0 vs 1? causing issue.
@@ -74,6 +78,20 @@ public class Handler implements Runnable {
             System.out.println("WRQ received, sending ACK");
         } else {
             int blockNumber = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
+            // data manipulation
+
+            byte[] packetData = Arrays.copyOfRange(receivedData, 4, receivedData.length);
+            String url = new String(packetData, StandardCharsets.UTF_8);
+            if (cache.hasKey(url)) {
+                // get cached data and send
+            } else {
+               // add actual image bytes to cache
+            }
+            downloadImage(url);
+
+
+
+            System.out.println(Arrays.toString(packetData));
             System.out.println("Data packet received, block #" + blockNumber);
             output = ByteBuffer.wrap(Config.createACKPacket(blockNumber));
         }

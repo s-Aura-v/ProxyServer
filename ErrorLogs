@@ -6,6 +6,10 @@ Solution: Make it a non blocking
 
 3. It might be better to work chronologically on how the system works because adding features you think you need will not always be true
 
+4. look into handler. sending multiple packets back to client issue
+        // 0 vs 1? causing issue.
+           sk = socket.register(sel, SelectionKey.OP_READ);
+
 
 Architect:
 1. Start Reactor

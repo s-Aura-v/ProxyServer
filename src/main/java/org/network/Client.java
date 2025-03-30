@@ -41,7 +41,7 @@ public class Client implements Runnable {
 //            String url = scanner.nextLine();
 //            scanner.close();
 
-            String url = "https://m.media-amazon.com/images/M/MV5BNTc4ODVkMmMtZWY3NS00OWI4LWE1YmYtN2NkNDA3ZjcyNTkxXkEyXkFqcGc@._V1_.jpg";
+            String url = "m.media-amazon.com/images/M/MV5BNTc4ODVkMmMtZWY3NS00OWI4LWE1YmYtN2NkNDA3ZjcyNTkxXkEyXkFqcGc@._V1_.jpg";
 
             byte[] urlData = url.getBytes();
             byte[] urlPacket = createDataPacket(urlData, urlNum);
@@ -60,7 +60,7 @@ public class Client implements Runnable {
             System.out.println("Received ACK: " + new String(bytes, StandardCharsets.UTF_8));
 
 
-            String url2 = "https://images.unsplash.com/photo-1562362898-d1a9d124fd77?q=80&w=2109&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+            String url2 = "images.unsplash.com/photo-1562362898-d1a9d124fd77?q=80&w=2109&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
             byte[] urlData2 = url2.getBytes();
             byte[] urlPacket2 = createDataPacket(urlData2, urlNum);

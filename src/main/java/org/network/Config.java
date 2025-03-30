@@ -107,9 +107,9 @@ public final class Config {
 //    }
 
     // Download URL into machine
-    static void downloadImage(String fileName, String fileURL) throws IOException {
+    static void downloadImage(String fileURL) throws IOException {
         InputStream in = new URL(fileURL).openStream();
-        Files.copy(in, Paths.get("src/main/resources/img-cache/" + fileName), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(in, Paths.get("src/main/resources/img-cache/" + fileURL), StandardCopyOption.REPLACE_EXISTING);
     }
 
     // convert image to bytes
@@ -122,9 +122,11 @@ public final class Config {
 
     // convert bytes to images
     static void bytesToImage(byte[] imageBytes) throws IOException {
-        BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageBytes));
-        File outputfile = new File("src/main/resources/img-cache/test-case.jpg");
-        ImageIO.write(img, "jpg", outputfile);
+        if (imageBytes != null) {
+            BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageBytes));
+            File outputfile = new File("src/main/resources/img-cache/test-case.jpg");
+            ImageIO.write(img, "jpg", outputfile);
+        }
     }
 
     /**
