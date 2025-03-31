@@ -31,14 +31,14 @@ public final class Config {
     static ArrayList<byte[]> createTCPSlidingWindow(byte[] imageData) throws IOException {
         ArrayList<byte[]> window = new ArrayList<>();
         int packetSize = MAX_PACKET_SIZE - OPCODE_SIZE - BLOCK_SIZE;
-        for (int i = 0; i < imageData.length; i+=packetSize) {
+        for (int i = 0; i < imageData.length; i += packetSize) {
             byte[] partition = Arrays.copyOfRange(imageData, i, Math.min(imageData.length, i + packetSize));
             byte[] packet = createDataPacket(partition, i);
             window.add(packet);
         }
-        byte[] testPacket = window.get(window.size() - 2);
+        byte[] testPacket = window.getLast();
         testPacket[0] = 7;
-        window.set(window.size() - 2, testPacket);
+        window.set(window.size() - 1, testPacket);
 
         return window;
     }
@@ -100,10 +100,12 @@ public final class Config {
 
     // convert bytes to images
     static void bytesToImage(byte[] imageBytes) throws IOException {
-        if (imageBytes != null) {
+        try {
             BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageBytes));
             File outputfile = new File("src/main/resources/img-cache/test-case.jpg");
             ImageIO.write(img, "jpg", outputfile);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Packet information incomplete. Unable to generate image.");
         }
     }
 
@@ -113,15 +115,27 @@ public final class Config {
     [0, 3, 3, -8, 60, 30, -93, -39, 108, -94, 82, -87, -4, -11, 28, -50, -49, -49, -47, 110, -73, 49, 26, -115, 96, -102, 38, 98, -79, 24, 78, 79, 79, 55, 78, 85, 94, 115, 94, -112, -8, -65, -67, -1, 22, -4, -7, -99, 66, 8, -123, 80, 8, -95, 16, 10, 33, 20, 66, 33, -124, 66, 40, -124, 80, 8, -95, 16, 10, 33, 20, 66, 33, -124, 66, 40, -124, 80, 8, -123, 16, 10, 33, 20, 66, 33, -124, 66, 40, -124, 80, 8, -123, 16, 10, -95, 16, 66, 33, -124, 66, 40, -124, 80, 8, -123, 16, 10, -95, 16, 66, 33, 20, 66, 40, -124, 80, 8, -123, 16, 10, -95, 16, 66, 33, -1, 83, -2, 0, -52, 108, 119, -65, 95, 26, -113, 99, 0, 0, 0, 0, 73, 69, 78, 68, -82, 66, 96, -126]
      */
     public static void main(String[] args) throws IOException {
-        String url = "https://placehold.jp/100x100.png";
-        String safeUrl = url.replaceAll("/", "__");
-        downloadImage(safeUrl);
-        System.out.println("Download Complete");
-        byte[] imageBytes = (imageToBytes(CACHE_PATH + safeUrl));
-        ArrayList<byte[]> window = createTCPSlidingWindow(imageBytes);
-        for (byte[] bytes : window) {
-            System.out.println(Arrays.toString(bytes));
+//        String url = "https://placehold.jp/100x100.png";
+//        String safeUrl = url.replaceAll("/", "__");
+//        downloadImage(safeUrl);
+//        System.out.println("Download Complete");
+//        byte[] imageBytes = (imageToBytes(CACHE_PATH + safeUrl));
+//        ArrayList<byte[]> window = createTCPSlidingWindow(imageBytes);
+//        for (byte[] bytes : window) {
+//            System.out.println(Arrays.toString(bytes));
+//        }
+
+        // TESTING PACKETS TO IMAGE
+        byte[] image2 = imageToBytes("src/main/resources/test-cases/qr-code.jpeg");
+        ArrayList<byte[]> imagePackets = createTCPSlidingWindow(image2);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        for (byte[] imagePacket : imagePackets) {
+            byte[] extracted = extractPacketData(imagePacket);
+            output.write(extracted);
         }
+        byte[] finalImageFrame = output.toByteArray();
+        bytesToImage(finalImageFrame);
+
     }
 
 }

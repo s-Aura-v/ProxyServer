@@ -54,7 +54,6 @@ public class Handler implements Runnable {
     }
 
     void read() throws IOException {
-        System.out.println("Entering READ state");
         input.clear();
         int bytesRead = socket.read(input);
 
@@ -71,23 +70,20 @@ public class Handler implements Runnable {
         input.flip();
         byte[] receivedData = new byte[input.remaining()];
         input.get(receivedData);
-        System.out.println("Received: " + new String(receivedData));
-
 
         int blockNumber = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
         // data manipulation
 
-        byte[] packetData = Arrays.copyOfRange(receivedData, 4, receivedData.length);
+        byte[] packetData = Arrays.copyOfRange(receivedData, BLOCK_SIZE + OPCODE_SIZE, receivedData.length);
         String url = new String(packetData, StandardCharsets.UTF_8);
         String safeUrl = url.replaceAll("/", "__");
-
         downloadImage(safeUrl);
         byte[] imageBytes = imageToBytes(CACHE_PATH + safeUrl);
         ArrayList<byte[]> tcpSlidingWindow = createTCPSlidingWindow(imageBytes);
-        System.out.println(tcpSlidingWindow);
+        System.out.println(tcpSlidingWindow.size());
 
         int leftPointer = 0;
-        int rightPointer = leftPointer + 1;
+        int rightPointer = leftPointer;
 
         while (leftPointer < tcpSlidingWindow.size()) {
             while ((rightPointer < leftPointer + SEND_WINDOW_SIZE) && (rightPointer < tcpSlidingWindow.size())) {

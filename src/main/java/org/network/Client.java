@@ -1,5 +1,6 @@
 package org.network;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -24,8 +25,8 @@ public class Client implements Runnable {
 //            String url = scanner.nextLine();
 //            scanner.close();
 
-            String url = "https://placehold.jp/100x100.png";
-//            String url = "https://m.media-amazon.com/images/M/MV5BNTc4ODVkMmMtZWY3NS00OWI4LWE1YmYtN2NkNDA3ZjcyNTkxXkEyXkFqcGc@._V1_.jpg";
+//            String url = "https://placehold.jp/100x100.png";
+            String url = "https://m.media-amazon.com/images/M/MV5BNTc4ODVkMmMtZWY3NS00OWI4LWE1YmYtN2NkNDA3ZjcyNTkxXkEyXkFqcGc@._V1_.jpg";
 
             byte[] urlData = url.getBytes();
             byte[] urlPacket = createDataPacket(urlData, urlNum);
@@ -35,22 +36,32 @@ public class Client implements Runnable {
 
             ByteBuffer dataBuffer = ByteBuffer.allocate(MAX_PACKET_SIZE);
             ArrayList<byte[]> packets = new ArrayList<>();
+            boolean finalPacket = false;
 
-            while (true) {
+            while (!finalPacket) {
                 while (dataBuffer.position() < MAX_PACKET_SIZE) {
                     clientChannel.read(dataBuffer);
+                    if (dataBuffer.get(0) == (byte) 7) {
+                        finalPacket = true;
+                        break;
+                    }
                 }
                 dataBuffer.flip();
 
                 byte[] data = new byte[dataBuffer.limit()];
                 dataBuffer.get(data);
-                System.out.println(Arrays.toString(data));
-                if (data[0] == (byte) 7) {
-                    break;
-                }
                 packets.add(data);
                 dataBuffer.clear();
             }
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            for (byte[] imagePacket : packets) {
+                byte[] extracted = extractPacketData(imagePacket);
+                output.write(extracted);
+            }
+            byte[] finalImageFrame = output.toByteArray();
+            bytesToImage(finalImageFrame);
+
+
 
             System.out.println("all packets collected: " + packets.size());
             clientChannel.close();
