@@ -62,10 +62,9 @@ public final class Config {
         output.write((byte) (blockNum >> 8)); // High byte
         output.write((byte) (blockNum & 0xFF)); // Low byte
         output.write(data);
-        System.out.println("FixedBlockNumber:" + (((data[2] & 0xff) << 8) | (data[3] & 0xff)));
+        byte[] dataArray = output.toByteArray();
 
-
-        return output.toByteArray();
+        return dataArray;
     }
 
     static byte[] extractPacketData(byte[] dataPacket) {
@@ -153,19 +152,18 @@ public final class Config {
         // create the blocked values
         ArrayList<byte[]> window = new ArrayList<>();
         int packetSize = MAX_PACKET_SIZE - OPCODE_SIZE - BLOCK_SIZE;
+        int index = 1;
         for (int i = 0; i < image2.length; i += packetSize) {
             byte[] partition = Arrays.copyOfRange(image2, i, Math.min(image2.length, i + packetSize));
-            byte[] packet = createDataPacket(partition, i);
+            byte[] packet = createDataPacket(partition, index);
             window.add(packet);
+            index++;
         }
 
         // decrypt it
         for (byte[] data : window) {
             System.out.println("Block Numbers: " + (((data[2] & 0xff) << 8) | (data[3] & 0xff)));
         }
-
-
-
 
         }
 

@@ -100,6 +100,7 @@ public class Handler implements Runnable {
                 rightPointer++;
             }
 
+            leftPointer++;
             // REMINDER:
             // PURPOSE: SEE IF WE RECEIVED AN ACK, IF SO, MOVE LEFT POINTER UP
             // WHERE

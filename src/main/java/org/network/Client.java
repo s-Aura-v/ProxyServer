@@ -52,9 +52,9 @@ public class Client implements Runnable {
                     byte[] data = new byte[dataBuffer.limit()];
                     dataBuffer.get(data);
 
-                    int blockNumber = ((data[2] & 0xff) << 8) | (data[3] & 0xff);
-                    byte[] ack = createACKPacket(blockNumber);
-                    clientChannel.write(ByteBuffer.wrap(ack));
+//                    int blockNumber = ((data[2] & 0xff) << 8) | (data[3] & 0xff);
+//                    byte[] ack = createACKPacket(blockNumber);
+//                    clientChannel.write(ByteBuffer.wrap(ack));
 
                     packets.add(data);
                     dataBuffer.clear();
