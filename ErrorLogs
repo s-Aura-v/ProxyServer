@@ -10,6 +10,10 @@ Solution: Make it a non blocking
         // 0 vs 1? causing issue.
            sk = socket.register(sel, SelectionKey.OP_READ);
 
+5. if packet size is not max,
+              while (dataBuffer.position() < MAX_PACKET_SIZE) {
+                    clientChannel.read(dataBuffer);
+                }
 
 Architect:
 1. Start Reactor

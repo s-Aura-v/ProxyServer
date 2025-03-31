@@ -12,8 +12,8 @@ import java.util.Arrays;
 import static org.network.Config.*;
 
 public class Handler implements Runnable {
-    int MAX_IN = 500;
-    int MAX_OUT = 500;
+    int MAX_IN = 512;
+    int MAX_OUT = 512;
 
     final SocketChannel socket;
     final SelectionKey sk;
@@ -71,7 +71,7 @@ public class Handler implements Runnable {
         input.flip();
         byte[] receivedData = new byte[input.remaining()];
         input.get(receivedData);
-        System.out.println(BLUE + "Received: " + RESET + new String(receivedData));
+        System.out.println("Received: " + new String(receivedData));
 
         // Process packet
         if (receivedData.length >= 2 && receivedData[0] == 0 && receivedData[1] == 2) {
@@ -104,16 +104,13 @@ public class Handler implements Runnable {
                 while ((rightPointer < leftPointer + SEND_WINDOW_SIZE) && (rightPointer < tcpSlidingWindow.size())) {
                     output = ByteBuffer.wrap(tcpSlidingWindow.get(leftPointer));
                     socket.write(output);
-                    System.out.println("writing");
                     output.clear();
                     rightPointer++;
                 }
                 leftPointer++;
             }
 
-            System.out.println(Arrays.toString(packetData));
             System.out.println("Write Complete" + blockNumber);
-            output = ByteBuffer.wrap(Config.createACKPacket(0));
         }
 
         state = SENDING;
