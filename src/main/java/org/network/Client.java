@@ -48,8 +48,14 @@ public class Client implements Runnable {
                     }
                     dataBuffer.flip();
 
+
                     byte[] data = new byte[dataBuffer.limit()];
                     dataBuffer.get(data);
+
+                    int blockNumber = ((data[2] & 0xff) << 8) | (data[3] & 0xff);
+                    byte[] ack = createACKPacket(blockNumber);
+                    clientChannel.write(ByteBuffer.wrap(ack));
+
                     packets.add(data);
                     dataBuffer.clear();
                 }
@@ -61,6 +67,7 @@ public class Client implements Runnable {
                 }
                 byte[] finalImageFrame = output.toByteArray();
                 bytesToImage(finalImageFrame, safeURL);
+                output.close();
 
                 System.out.println("Please enter the image address or enter 'exit' to terminate program: ");
                 url = scanner.nextLine();

@@ -23,6 +23,7 @@ public class Handler implements Runnable {
     int state = READING;
 
     static Cache cache;
+    static ArrayList<Integer> acks = new ArrayList<>();
 
     public Handler(Selector sel, SocketChannel c) throws IOException {
         cache = new Cache();
@@ -98,9 +99,45 @@ public class Handler implements Runnable {
                 output.clear();
                 rightPointer++;
             }
-            leftPointer++;
+
+            // REMINDER:
+            // PURPOSE: SEE IF WE RECEIVED AN ACK, IF SO, MOVE LEFT POINTER UP
+            // WHERE
+//            ByteBuffer ackBuffer = ByteBuffer.allocate(4);
+//            byte[] receivedAck = new byte[input.remaining()];
+//            while (ackBuffer.hasRemaining()) {
+//                ackBuffer.get(receivedAck);
+//            }
+//            int ackBlockNum = ((receivedAck[2] & 0xff) << 8) | (receivedAck[3] & 0xff);
+//            System.out.println(ackBlockNum);
+//            acks.add(ackBlockNum);
+//            if (acks.contains(leftPointer)) {
+//                leftPointer++;
+//            }
+
+//            ByteBuffer ackBuffer = ByteBuffer.allocate(4);
+//            int ackBytes = socket.read(ackBuffer);
+//            while (ackBytes < 4) {
+//                System.out.println("ACK packet incomplete, waiting for more data");
+//                return;
+//            }
+//            System.out.println("Ack acknowledged");
+//            ackBuffer.flip();
+//            byte[] receivedAck = new byte[ackBuffer.remaining()];
+//            while (ackBuffer.hasRemaining()) {
+//                ackBuffer.get(receivedAck);
+//            }
+//            System.out.println("acked");
+//
+//            int ackBlockNum = ((receivedAck[2] & 0xff) << 8) | (receivedAck[3] & 0xff);
+//            System.out.println(ackBlockNum);
+//            acks.add(ackBlockNum);
+//            while (acks.contains(leftPointer)) {
+//                leftPointer++;
+//            }
         }
 
+        acks.clear();
         state = SENDING;
         sk.interestOps(SelectionKey.OP_WRITE);
         sk.selector().wakeup();
@@ -115,7 +152,6 @@ public class Handler implements Runnable {
             return;
         }
 
-        System.out.println("Write completed, switching to READ");
         output.clear();
         state = READING;
         sk.interestOps(SelectionKey.OP_READ);

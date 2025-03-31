@@ -30,11 +30,13 @@ public final class Config {
     // the data packets are byte[]
     static ArrayList<byte[]> createTCPSlidingWindow(byte[] imageData) throws IOException {
         ArrayList<byte[]> window = new ArrayList<>();
+        int blockNum = 1;
         int packetSize = MAX_PACKET_SIZE - OPCODE_SIZE - BLOCK_SIZE;
         for (int i = 0; i < imageData.length; i += packetSize) {
             byte[] partition = Arrays.copyOfRange(imageData, i, Math.min(imageData.length, i + packetSize));
-            byte[] packet = createDataPacket(partition, i);
+            byte[] packet = createDataPacket(partition, blockNum);
             window.add(packet);
+            blockNum++;
         }
         // 7 indicates final packet - tells client that it can stop reading.
         byte[] testPacket = window.getLast();
@@ -56,9 +58,12 @@ public final class Config {
         output.write(new byte[]{0x00, 0x03});
         // If the size is too big to fit inside a 8 byte code, then you have to split it into low and high bytes.
         // 16 bytes = 128 bits = 2^128 amount of bits
+        System.out.println("BlockNumber: " + blockNum);
         output.write((byte) (blockNum >> 8)); // High byte
         output.write((byte) (blockNum & 0xFF)); // Low byte
         output.write(data);
+        System.out.println("FixedBlockNumber:" + (((data[2] & 0xff) << 8) | (data[3] & 0xff)));
+
 
         return output.toByteArray();
     }
@@ -128,15 +133,40 @@ public final class Config {
 
         // TESTING PACKETS TO IMAGE
         byte[] image2 = imageToBytes("src/main/resources/test-cases/qr-code.jpeg");
-        ArrayList<byte[]> imagePackets = createTCPSlidingWindow(image2);
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        for (byte[] imagePacket : imagePackets) {
-            byte[] extracted = extractPacketData(imagePacket);
-            output.write(extracted);
-        }
-        byte[] finalImageFrame = output.toByteArray();
-        bytesToImage(finalImageFrame, "url");
+//        ArrayList<byte[]> imagePackets = createTCPSlidingWindow(image2);
+//        ByteArrayOutputStream output = new ByteArrayOutputStream();
+//        for (byte[] imagePacket : imagePackets) {
+//            byte[] extracted = extractPacketData(imagePacket);
+//            output.write(extracted);
+//        }
+//        byte[] finalImageFrame = output.toByteArray();
+//        bytesToImage(finalImageFrame, "url");
 
-    }
+
+        // BLOCK TESTING
+        int num = 9999;
+        byte high = (byte) (num >> 8);
+        byte low = (byte) (num & 0xFF);
+        int reconstructedNum = ((high & 0xFF) << 8) | (low & 0xFF);
+        System.out.println(reconstructedNum);
+
+        // create the blocked values
+        ArrayList<byte[]> window = new ArrayList<>();
+        int packetSize = MAX_PACKET_SIZE - OPCODE_SIZE - BLOCK_SIZE;
+        for (int i = 0; i < image2.length; i += packetSize) {
+            byte[] partition = Arrays.copyOfRange(image2, i, Math.min(image2.length, i + packetSize));
+            byte[] packet = createDataPacket(partition, i);
+            window.add(packet);
+        }
+
+        // decrypt it
+        for (byte[] data : window) {
+            System.out.println("Block Numbers: " + (((data[2] & 0xff) << 8) | (data[3] & 0xff)));
+        }
+
+
+
+
+        }
 
 }

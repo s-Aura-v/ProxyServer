@@ -18,6 +18,21 @@ Solution: Make it a non blocking
 6. If you have a hard time finding a bug and it's taking you the entire day to get past it, redo everything.
 As in, remove all your previous test cases and redo it step by step to see if you messed something up along the way.
 
+
+7. you need bytesread -> tells the socket to read data
+
+ ByteBuffer ackBuffer = ByteBuffer.allocate(4);
+   int bytesRead = socket.read(ackBuffer);
+   if (bytesRead < 4) {
+       System.out.println("ACK packet incomplete, waiting for more data");
+       return;
+   }
+   ackBuffer.flip();
+   byte[] receivedAck = new byte[4];
+   ackBuffer.get(receivedAck);
+
+
+
 Architect:
 1. Start Reactor
 2. Reactor waits for client message
