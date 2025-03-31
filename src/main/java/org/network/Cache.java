@@ -16,22 +16,18 @@ public class Cache {
 
     public void addToCache(String url, byte[] bytes) {
         if (numCached > 5) {
-            // remove oldest value
+            cache.keySet().stream().findAny().ifPresent(key -> cache.remove(key));
+            numCached--;
         }
         cache.put(url, bytes);
         numCached++;
-    }
-
-    public void removeFromCache(String url) {
-        cache.remove(url);
-        numCached--;
     }
 
     public boolean hasKey(String url) {
         return cache.containsKey(url);
     }
 
-    public int getNumCached() {
-        return numCached;
+    public byte[] get(String url) {
+        return cache.get(url);
     }
 }

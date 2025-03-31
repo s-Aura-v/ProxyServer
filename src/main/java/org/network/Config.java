@@ -36,6 +36,7 @@ public final class Config {
             byte[] packet = createDataPacket(partition, i);
             window.add(packet);
         }
+        // 7 indicates final packet - tells client that it can stop reading.
         byte[] testPacket = window.getLast();
         testPacket[0] = 7;
         window.set(window.size() - 1, testPacket);
@@ -99,10 +100,10 @@ public final class Config {
     }
 
     // convert bytes to images
-    static void bytesToImage(byte[] imageBytes) throws IOException {
+    static void bytesToImage(byte[] imageBytes, String safeURL) throws IOException {
         try {
             BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageBytes));
-            File outputfile = new File("src/main/resources/img-cache/test-case.jpg");
+            File outputfile = new File("src/main/resources/img-cache/" + safeURL);
             ImageIO.write(img, "jpg", outputfile);
         } catch (IllegalArgumentException e) {
             System.out.println("Packet information incomplete. Unable to generate image.");
@@ -134,7 +135,7 @@ public final class Config {
             output.write(extracted);
         }
         byte[] finalImageFrame = output.toByteArray();
-        bytesToImage(finalImageFrame);
+        bytesToImage(finalImageFrame, "url");
 
     }
 

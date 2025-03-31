@@ -77,11 +77,17 @@ public class Handler implements Runnable {
         byte[] packetData = Arrays.copyOfRange(receivedData, BLOCK_SIZE + OPCODE_SIZE, receivedData.length);
         String url = new String(packetData, StandardCharsets.UTF_8);
         String safeUrl = url.replaceAll("/", "__");
-        downloadImage(safeUrl);
-        byte[] imageBytes = imageToBytes(CACHE_PATH + safeUrl);
-        ArrayList<byte[]> tcpSlidingWindow = createTCPSlidingWindow(imageBytes);
-        System.out.println(tcpSlidingWindow.size());
 
+
+        byte[] imageBytes;
+        if (cache.hasKey(safeUrl)) {
+            imageBytes = cache.get(safeUrl);
+        } else {
+            downloadImage(safeUrl);
+            imageBytes = imageToBytes(CACHE_PATH + safeUrl);
+            cache.addToCache(safeUrl, imageBytes);
+        }
+        ArrayList<byte[]> tcpSlidingWindow = createTCPSlidingWindow(imageBytes);
         int leftPointer = 0;
         int rightPointer = leftPointer;
 
