@@ -8,6 +8,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Scanner;
 
 import static org.network.Config.*;
 
@@ -21,49 +22,50 @@ public class Client implements Runnable {
             clientChannel.configureBlocking(false);
 
             // Sending the data
-//            Scanner scanner = new Scanner(System.in);
-//            String url = scanner.nextLine();
-//            scanner.close();
+            System.out.println("Please enter the image address or enter 'exit' to terminate program: ");
+            Scanner scanner = new Scanner(System.in);
+            String url = scanner.nextLine();
+            while (!url.equals("exit")) {
+                String safeURL = url.replaceAll("/", "__");
 
-//            String url = "https://placehold.jp/100x100.png";
+                byte[] urlData = url.getBytes();
+                byte[] urlPacket = createDataPacket(urlData, urlNum);
+                System.out.println("Client: " + "Sending url " + urlNum);
+                urlNum++;
+                clientChannel.write(ByteBuffer.wrap(urlPacket));
 
-            String url = "https://m.media-amazon.com/images/M/MV5BNTc4ODVkMmMtZWY3NS00OWI4LWE1YmYtN2NkNDA3ZjcyNTkxXkEyXkFqcGc@._V1_.jpg";
-            String safeURL = url.replaceAll("/", "__");
+                ByteBuffer dataBuffer = ByteBuffer.allocate(MAX_PACKET_SIZE);
+                ArrayList<byte[]> packets = new ArrayList<>();
+                boolean finalPacket = false;
 
-            byte[] urlData = url.getBytes();
-            byte[] urlPacket = createDataPacket(urlData, urlNum);
-            System.out.println("Client: " + "Sending url " + urlNum);
-            urlNum++;
-            clientChannel.write(ByteBuffer.wrap(urlPacket));
-
-            ByteBuffer dataBuffer = ByteBuffer.allocate(MAX_PACKET_SIZE);
-            ArrayList<byte[]> packets = new ArrayList<>();
-            boolean finalPacket = false;
-
-            while (!finalPacket) {
-                while (dataBuffer.position() < MAX_PACKET_SIZE) {
-                    clientChannel.read(dataBuffer);
-                    if (dataBuffer.get(0) == (byte) 7) {
-                        finalPacket = true;
-                        break;
+                while (!finalPacket) {
+                    while (dataBuffer.position() < MAX_PACKET_SIZE) {
+                        clientChannel.read(dataBuffer);
+                        if (dataBuffer.get(0) == (byte) 7) {
+                            finalPacket = true;
+                            break;
+                        }
                     }
+                    dataBuffer.flip();
+
+                    byte[] data = new byte[dataBuffer.limit()];
+                    dataBuffer.get(data);
+                    packets.add(data);
+                    dataBuffer.clear();
                 }
-                dataBuffer.flip();
 
-                byte[] data = new byte[dataBuffer.limit()];
-                dataBuffer.get(data);
-                packets.add(data);
-                dataBuffer.clear();
+                ByteArrayOutputStream output = new ByteArrayOutputStream();
+                for (byte[] imagePacket : packets) {
+                    byte[] extracted = extractPacketData(imagePacket);
+                    output.write(extracted);
+                }
+                byte[] finalImageFrame = output.toByteArray();
+                bytesToImage(finalImageFrame, safeURL);
+
+                System.out.println("Please enter the image address or enter 'exit' to terminate program: ");
+                url = scanner.nextLine();
             }
-
-            ByteArrayOutputStream output = new ByteArrayOutputStream();
-            for (byte[] imagePacket : packets) {
-                byte[] extracted = extractPacketData(imagePacket);
-                output.write(extracted);
-            }
-            byte[] finalImageFrame = output.toByteArray();
-            bytesToImage(finalImageFrame, safeURL);
-
+            scanner.close();
             clientChannel.close();
         } catch (IOException e) {
             e.printStackTrace();

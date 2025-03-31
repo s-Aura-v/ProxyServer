@@ -104,7 +104,7 @@ public final class Config {
         try {
             BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageBytes));
             File outputfile = new File("src/main/resources/img-cache/" + safeURL);
-            ImageIO.write(img, "jpg", outputfile);
+            ImageIO.write(img, "png", outputfile);
         } catch (IllegalArgumentException e) {
             System.out.println("Packet information incomplete. Unable to generate image.");
         }

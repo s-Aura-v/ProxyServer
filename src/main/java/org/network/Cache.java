@@ -1,17 +1,14 @@
 package org.network;
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class Cache {
     private ConcurrentHashMap<String, byte[]> cache;
     private int numCached;
-    private ThreadLocalRandom random;
 
     public Cache(){
         cache = new ConcurrentHashMap<>();
         numCached = 0;
-        random = ThreadLocalRandom.current();
     }
 
     public void addToCache(String url, byte[] bytes) {
