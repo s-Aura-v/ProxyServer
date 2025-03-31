@@ -24,8 +24,8 @@ public class Client implements Runnable {
 //            String url = scanner.nextLine();
 //            scanner.close();
 
-//            String url = "https://placehold.jp/100x100.png";
-            String url = "https://m.media-amazon.com/images/M/MV5BNTc4ODVkMmMtZWY3NS00OWI4LWE1YmYtN2NkNDA3ZjcyNTkxXkEyXkFqcGc@._V1_.jpg";
+            String url = "https://placehold.jp/100x100.png";
+//            String url = "https://m.media-amazon.com/images/M/MV5BNTc4ODVkMmMtZWY3NS00OWI4LWE1YmYtN2NkNDA3ZjcyNTkxXkEyXkFqcGc@._V1_.jpg";
 
             byte[] urlData = url.getBytes();
             byte[] urlPacket = createDataPacket(urlData, urlNum);
@@ -42,7 +42,6 @@ public class Client implements Runnable {
                 }
                 dataBuffer.flip();
 
-
                 byte[] data = new byte[dataBuffer.limit()];
                 dataBuffer.get(data);
                 System.out.println(Arrays.toString(data));
@@ -51,9 +50,8 @@ public class Client implements Runnable {
                 }
                 packets.add(data);
                 dataBuffer.clear();
-
             }
-            
+
             System.out.println("all packets collected: " + packets.size());
             clientChannel.close();
         } catch (IOException e) {

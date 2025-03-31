@@ -73,44 +73,30 @@ public class Handler implements Runnable {
         input.get(receivedData);
         System.out.println("Received: " + new String(receivedData));
 
-        // Process packet
-        if (receivedData.length >= 2 && receivedData[0] == 0 && receivedData[1] == 2) {
-            output = ByteBuffer.wrap(Config.createACKPacket(0));
-            System.out.println("WRQ received, sending ACK");
-        } else {
-            int blockNumber = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
-            // data manipulation
 
-            byte[] packetData = Arrays.copyOfRange(receivedData, 4, receivedData.length);
-            String url = new String(packetData, StandardCharsets.UTF_8);
-            String safeUrl = url.replaceAll("/","__");
-            System.out.println(safeUrl);
+        int blockNumber = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
+        // data manipulation
 
+        byte[] packetData = Arrays.copyOfRange(receivedData, 4, receivedData.length);
+        String url = new String(packetData, StandardCharsets.UTF_8);
+        String safeUrl = url.replaceAll("/", "__");
 
-//            if (cache.hasKey(url)) {
-//                // get cached data and send
-//            } else {
-//               // add actual image bytes to cache
-//            }
+        downloadImage(safeUrl);
+        byte[] imageBytes = imageToBytes(CACHE_PATH + safeUrl);
+        ArrayList<byte[]> tcpSlidingWindow = createTCPSlidingWindow(imageBytes);
+        System.out.println(tcpSlidingWindow);
 
-            downloadImage(safeUrl);
-            byte[] imageBytes = imageToBytes(CACHE_PATH + safeUrl);
-            ArrayList<byte[]> tcpSlidingWindow = createTCPSlidingWindow(imageBytes);
-            System.out.println(tcpSlidingWindow);
+        int leftPointer = 0;
+        int rightPointer = leftPointer + 1;
 
-            int leftPointer = 0;
-            int rightPointer = leftPointer + 1;
-            while (leftPointer < tcpSlidingWindow.size()) {
-                while ((rightPointer < leftPointer + SEND_WINDOW_SIZE) && (rightPointer < tcpSlidingWindow.size())) {
-                    output = ByteBuffer.wrap(tcpSlidingWindow.get(leftPointer));
-                    socket.write(output);
-                    output.clear();
-                    rightPointer++;
-                }
-                leftPointer++;
+        while (leftPointer < tcpSlidingWindow.size()) {
+            while ((rightPointer < leftPointer + SEND_WINDOW_SIZE) && (rightPointer < tcpSlidingWindow.size())) {
+                output = ByteBuffer.wrap(tcpSlidingWindow.get(rightPointer));
+                socket.write(output);
+                output.clear();
+                rightPointer++;
             }
-
-            System.out.println("Write Complete" + blockNumber);
+            leftPointer++;
         }
 
         state = SENDING;
