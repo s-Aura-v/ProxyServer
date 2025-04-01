@@ -20,6 +20,8 @@ public class Client implements Runnable {
         try {
             SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost", 26880));
             clientChannel.configureBlocking(false);
+            long seed = generateSessionKey();
+            System.out.println(seed);
 
             // Sending the data
             System.out.println("Please enter the image address or enter 'exit' to terminate program: ");
@@ -28,8 +30,12 @@ public class Client implements Runnable {
             while (!url.equals("exit")) {
                 String safeURL = url.replaceAll("/", "__");
 
+                long key = xorShift(seed);
+                byte[] keyBytes = longToBytes(key);
+                System.out.println(key);
                 byte[] urlData = url.getBytes();
-                byte[] urlPacket = createDataPacket(urlData, urlNum);
+                byte[] urlPacket = createURLPacket(urlData, urlNum, keyBytes);
+                System.out.println(Arrays.toString(urlPacket));
                 System.out.println("Client: " + "Sending url " + urlNum);
                 urlNum++;
 

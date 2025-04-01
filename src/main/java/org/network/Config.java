@@ -4,9 +4,11 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -21,6 +23,7 @@ public final class Config {
     public static final int MAX_PACKET_SIZE = 512;
     public static final int OPCODE_SIZE = 2;
     public static final int BLOCK_SIZE = 2;
+    public static final int KEY_SIZE = 8;
     public static final String CACHE_PATH = "src/main/resources/img-cache/";
 
     // The TCP Sliding Window is an arraylist that stores data packets
@@ -58,9 +61,26 @@ public final class Config {
         output.write((byte) (blockNum >> 8)); // High byte
         output.write((byte) (blockNum & 0xFF)); // Low byte
         output.write(data);
-        byte[] dataArray = output.toByteArray();
 
-        return dataArray;
+        return output.toByteArray();
+    }
+
+    // Custom Logic
+    // Add a session key in the url
+    static byte[] createURLPacket(byte[] data, int blockNum, byte[] key) throws IOException {
+        // Data Packets: opcode + block # + key + data
+        // the key is 8 bytes long
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        output.write(new byte[]{0x00, 0x03});
+        // If the size is too big to fit inside a 8 byte code, then you have to split it into low and high bytes.
+        // 16 bytes = 128 bits = 2^128 amount of bits
+        output.write((byte) (blockNum >> 8)); // High byte
+        output.write((byte) (blockNum & 0xFF)); // Low byte
+        output.write(key); // Key
+        output.write(data);
+
+        return output.toByteArray();
     }
 
     static byte[] extractPacketData(byte[] dataPacket) {
@@ -109,5 +129,43 @@ public final class Config {
             System.out.println("Packet information incomplete. Unable to generate image.");
         }
     }
+
+    // xor shift
+    static long xorShift(long r) {
+        r ^= r << 13;
+        r ^= r >>> 7;
+        r ^= r << 17;
+        return r;
+    }
+
+    public static long generateSessionKey() {
+        SecureRandom secureRandom = new SecureRandom();
+        return secureRandom.nextLong(10000000,99999999);
+    }
+
+    public static byte[] longToBytes(long x) {
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.putLong(x);
+        return buffer.array();
+    }
+
+    public static long bytesToLong(byte[] bytes) {
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.put(bytes);
+        buffer.flip();
+        return buffer.getLong();
+    }
+
+
+    public static void main(String[] args) {
+        long value = 214914L;
+        byte[] longValue = longToBytes(value);
+        long reValue = bytesToLong(longValue);
+        System.out.println(value);
+        System.out.println(Arrays.toString(longValue));
+        System.out.println(reValue);
+    }
+
+
 
 }

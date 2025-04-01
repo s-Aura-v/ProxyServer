@@ -99,10 +99,10 @@ public class Handler implements Runnable {
 
 
         // Case 2: New Image Request
-        int blockNumber = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
-        byte[] packetData = Arrays.copyOfRange(receivedData, BLOCK_SIZE + OPCODE_SIZE, receivedData.length);
+        byte[] packetData = Arrays.copyOfRange(receivedData, BLOCK_SIZE + OPCODE_SIZE + KEY_SIZE, receivedData.length);
         String url = new String(packetData, StandardCharsets.UTF_8);
         String safeUrl = url.replaceAll("/", "__");
+        System.out.println(url);
 
         byte[] imageBytes;
         if (cache.hasKey(safeUrl)) {
