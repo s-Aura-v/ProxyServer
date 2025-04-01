@@ -30,7 +30,7 @@ public final class Config {
     // the data packets are byte[]
     static ArrayList<byte[]> createTCPSlidingWindow(byte[] imageData) throws IOException {
         ArrayList<byte[]> window = new ArrayList<>();
-        int blockNum = 1;
+        int blockNum = 0;
         int packetSize = MAX_PACKET_SIZE - OPCODE_SIZE - BLOCK_SIZE;
         for (int i = 0; i < imageData.length; i += packetSize) {
             byte[] partition = Arrays.copyOfRange(imageData, i, Math.min(imageData.length, i + packetSize));
@@ -58,7 +58,6 @@ public final class Config {
         output.write(new byte[]{0x00, 0x03});
         // If the size is too big to fit inside a 8 byte code, then you have to split it into low and high bytes.
         // 16 bytes = 128 bits = 2^128 amount of bits
-        System.out.println("BlockNumber: " + blockNum);
         output.write((byte) (blockNum >> 8)); // High byte
         output.write((byte) (blockNum & 0xFF)); // Low byte
         output.write(data);

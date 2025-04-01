@@ -32,8 +32,9 @@ public class Client implements Runnable {
                 byte[] urlPacket = createDataPacket(urlData, urlNum);
                 System.out.println("Client: " + "Sending url " + urlNum);
                 urlNum++;
-                clientChannel.write(ByteBuffer.wrap(urlPacket));
 
+                long startTime = System.currentTimeMillis();
+                clientChannel.write(ByteBuffer.wrap(urlPacket));
                 ByteBuffer dataBuffer = ByteBuffer.allocate(MAX_PACKET_SIZE);
                 ArrayList<byte[]> packets = new ArrayList<>();
                 boolean finalPacket = false;
@@ -52,9 +53,10 @@ public class Client implements Runnable {
                     byte[] data = new byte[dataBuffer.limit()];
                     dataBuffer.get(data);
 
-//                    int blockNumber = ((data[2] & 0xff) << 8) | (data[3] & 0xff);
-//                    byte[] ack = createACKPacket(blockNumber);
-//                    clientChannel.write(ByteBuffer.wrap(ack));
+                    int blockNumber = ((data[2] & 0xff) << 8) | (data[3] & 0xff);
+                    byte[] ack = createACKPacket(blockNumber);
+                    clientChannel.write(ByteBuffer.wrap(ack));
+                    long endTime = System.currentTimeMillis();
 
                     packets.add(data);
                     dataBuffer.clear();

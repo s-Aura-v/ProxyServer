@@ -54,6 +54,11 @@ public class Handler implements Runnable {
         }
     }
 
+    ArrayList<byte[]> tcpSlidingWindow = new ArrayList<>();
+    int leftPointer = 0;
+    int rightPointer = 0;
+    boolean sendingImage = false; // new state to differentiate url vs ack
+
     void read() throws IOException {
         input.clear();
         int bytesRead = socket.read(input);
@@ -64,7 +69,6 @@ public class Handler implements Runnable {
             socket.close();
             return;
         } else if (bytesRead == 0) {
-            System.out.println("Read 0 bytes, waiting for more data");
             return;
         }
 
@@ -72,13 +76,11 @@ public class Handler implements Runnable {
         byte[] receivedData = new byte[input.remaining()];
         input.get(receivedData);
 
-        int blockNumber = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
-        // data manipulation
 
+        int blockNumber = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
         byte[] packetData = Arrays.copyOfRange(receivedData, BLOCK_SIZE + OPCODE_SIZE, receivedData.length);
         String url = new String(packetData, StandardCharsets.UTF_8);
         String safeUrl = url.replaceAll("/", "__");
-
 
         byte[] imageBytes;
         if (cache.hasKey(safeUrl)) {
@@ -88,75 +90,35 @@ public class Handler implements Runnable {
             imageBytes = imageToBytes(CACHE_PATH + safeUrl);
             cache.addToCache(safeUrl, imageBytes);
         }
-        ArrayList<byte[]> tcpSlidingWindow = createTCPSlidingWindow(imageBytes);
-        int leftPointer = 0;
-        int rightPointer = leftPointer;
 
-        while (leftPointer < tcpSlidingWindow.size()) {
-            while ((rightPointer < leftPointer + SEND_WINDOW_SIZE) && (rightPointer < tcpSlidingWindow.size())) {
-                output = ByteBuffer.wrap(tcpSlidingWindow.get(rightPointer));
-                socket.write(output);
-                output.clear();
-                rightPointer++;
-            }
+        tcpSlidingWindow = createTCPSlidingWindow(imageBytes);
+        leftPointer = 0;
+        rightPointer = 0;
 
-            leftPointer++;
-            // REMINDER:
-            // PURPOSE: SEE IF WE RECEIVED AN ACK, IF SO, MOVE LEFT POINTER UP
-            // WHERE
-//            ByteBuffer ackBuffer = ByteBuffer.allocate(4);
-//            byte[] receivedAck = new byte[input.remaining()];
-//            while (ackBuffer.hasRemaining()) {
-//                ackBuffer.get(receivedAck);
-//            }
-//            int ackBlockNum = ((receivedAck[2] & 0xff) << 8) | (receivedAck[3] & 0xff);
-//            System.out.println(ackBlockNum);
-//            acks.add(ackBlockNum);
-//            if (acks.contains(leftPointer)) {
-//                leftPointer++;
-//            }
-
-//            ByteBuffer ackBuffer = ByteBuffer.allocate(4);
-//            int ackBytes = socket.read(ackBuffer);
-//            while (ackBytes < 4) {
-//                System.out.println("ACK packet incomplete, waiting for more data");
-//                return;
-//            }
-//            System.out.println("Ack acknowledged");
-//            ackBuffer.flip();
-//            byte[] receivedAck = new byte[ackBuffer.remaining()];
-//            while (ackBuffer.hasRemaining()) {
-//                ackBuffer.get(receivedAck);
-//            }
-//            System.out.println("acked");
-//
-//            int ackBlockNum = ((receivedAck[2] & 0xff) << 8) | (receivedAck[3] & 0xff);
-//            System.out.println(ackBlockNum);
-//            acks.add(ackBlockNum);
-//            while (acks.contains(leftPointer)) {
-//                leftPointer++;
-//            }
-        }
-
-        acks.clear();
         state = SENDING;
         sk.interestOps(SelectionKey.OP_WRITE);
         sk.selector().wakeup();
     }
 
     void write() throws IOException {
-        System.out.println("Entering WRITE state");
-        socket.write(output);
+        if (tcpSlidingWindow.isEmpty()) return;
 
-        if (output.hasRemaining()) {
-            System.out.println("Output buffer not empty, will continue writing");
-            return;
+        while ((rightPointer < leftPointer + SEND_WINDOW_SIZE) &&
+                (rightPointer < tcpSlidingWindow.size())) {
+            byte[] packet = tcpSlidingWindow.get(rightPointer);
+            socket.write(ByteBuffer.wrap(packet));
+            rightPointer++;
         }
 
-        output.clear();
+        if (leftPointer >= tcpSlidingWindow.size()) {
+            System.out.println("All packets sent, waiting for final ACKs");
+            sendingImage = false;
+        }
+
         state = READING;
         sk.interestOps(SelectionKey.OP_READ);
         sk.selector().wakeup();
     }
 }
+
 
