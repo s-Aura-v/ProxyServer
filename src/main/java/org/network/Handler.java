@@ -23,7 +23,12 @@ public class Handler implements Runnable {
     int state = READING;
 
     static Cache cache;
-    static ArrayList<Integer> acks = new ArrayList<>();
+    ArrayList<Integer> acks = new ArrayList<>();
+    ArrayList<byte[]> tcpSlidingWindow = new ArrayList<>();
+    int leftPointer = 0;
+    int rightPointer = 0;
+    boolean sendingImage = false; // new state to differentiate url vs ack
+
 
     public Handler(Selector sel, SocketChannel c) throws IOException {
         cache = new Cache();
@@ -54,11 +59,6 @@ public class Handler implements Runnable {
         }
     }
 
-    ArrayList<byte[]> tcpSlidingWindow = new ArrayList<>();
-    int leftPointer = 0;
-    int rightPointer = 0;
-    boolean sendingImage = false; // new state to differentiate url vs ack
-
     void read() throws IOException {
         input.clear();
         int bytesRead = socket.read(input);
@@ -76,7 +76,29 @@ public class Handler implements Runnable {
         byte[] receivedData = new byte[input.remaining()];
         input.get(receivedData);
 
+        // Case 1: ACK Received
+        if (receivedData.length >= 4 && receivedData[1] == 4) {
+            for (int i = 0; i + 3 < receivedData.length; i += 4) {
+                int ackBlockNum = ((receivedData[i + 2] & 0xff) << 8) | (receivedData[i + 3] & 0xff);
+//                System.out.println("Received ACK for block: " + ackBlockNum);
+                if (!acks.contains(ackBlockNum)) {
+                    acks.add(ackBlockNum);
+                }
 
+                if (ackBlockNum == leftPointer) {
+                    leftPointer++;
+                    if (leftPointer < tcpSlidingWindow.size()) {
+                        state = SENDING;
+                        sk.interestOps(SelectionKey.OP_WRITE);
+                        sk.selector().wakeup();
+                    }
+                }
+            }
+            return;
+        }
+
+
+        // Case 2: New Image Request
         int blockNumber = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
         byte[] packetData = Arrays.copyOfRange(receivedData, BLOCK_SIZE + OPCODE_SIZE, receivedData.length);
         String url = new String(packetData, StandardCharsets.UTF_8);
@@ -94,6 +116,7 @@ public class Handler implements Runnable {
         tcpSlidingWindow = createTCPSlidingWindow(imageBytes);
         leftPointer = 0;
         rightPointer = 0;
+        sendingImage = true;
 
         state = SENDING;
         sk.interestOps(SelectionKey.OP_WRITE);
@@ -101,7 +124,7 @@ public class Handler implements Runnable {
     }
 
     void write() throws IOException {
-        if (tcpSlidingWindow.isEmpty()) return;
+        if (!sendingImage || tcpSlidingWindow.isEmpty()) return;
 
         while ((rightPointer < leftPointer + SEND_WINDOW_SIZE) &&
                 (rightPointer < tcpSlidingWindow.size())) {

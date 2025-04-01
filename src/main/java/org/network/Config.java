@@ -83,8 +83,8 @@ public final class Config {
         byte[] ackPacket = output.toByteArray();
 
         // Debug
-        System.out.print("Created ACK: " + ackPacket.length + " bytes: ");
-        System.out.println(Arrays.toString(ackPacket));
+//        System.out.print("Created ACK: " + ackPacket.length + " bytes: ");
+//        System.out.println(Arrays.toString(ackPacket));
 
         return ackPacket;
     }
