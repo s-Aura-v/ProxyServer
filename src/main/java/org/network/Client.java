@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
@@ -43,7 +42,6 @@ public class Client implements Runnable {
                 boolean finalPacket = false;
 
                 while (!finalPacket) {
-                    // new bug - because it's encrypted, you can't tell what the final packet is.
                     while (dataBuffer.position() < MAX_PACKET_SIZE) {
                         clientChannel.read(dataBuffer);
                         if (dataBuffer.get(0) == (byte) 7) {

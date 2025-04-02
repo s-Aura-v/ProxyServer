@@ -42,7 +42,7 @@ public final class Config {
             blockNum++;
         }
         // 7 indicates final packet - tells client that it can stop reading.
-        byte[] testPacket = window.getLast();
+        byte[] testPacket = window.get(window.size() - 2);
         testPacket[0] = 7;
         window.set(window.size() - 1, testPacket);
 
@@ -124,18 +124,23 @@ public final class Config {
 
     // convert bytes to images
     static void bytesToImage(byte[] imageBytes, String safeURL) throws IOException {
-        try {
-            BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageBytes));
-            File outputfile = new File("src/main/resources/img-cache/" + safeURL);
-            ImageIO.write(img, "png", outputfile);
-        } catch (IllegalArgumentException e) {
-            System.out.println("Packet information incomplete. Unable to generate image.");
+        File file = new File(CACHE_PATH, safeURL);
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(imageBytes);
+        } catch (IOException e) {
+            System.out.println("Packet incomplete; Unable to save file ");
         }
     }
 
     static byte[] encryptionCodec(byte[] packetData, byte[] key) {
         byte[] encrypted = new byte[packetData.length];
-        for (int i = 0; i < packetData.length; i++) {
+        // Keep the op-code and block number the same
+        encrypted[0] = packetData[0];
+        encrypted[1] = packetData[1];
+        encrypted[2] = packetData[2];
+        encrypted[3] = packetData[3];
+        // start the encryption for the data
+        for (int i = BLOCK_SIZE + OPCODE_SIZE; i < packetData.length; i++) {
             encrypted[i] = (byte) (packetData[i] ^ key[i % key.length]);
         }
         return encrypted;
