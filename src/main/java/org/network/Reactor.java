@@ -78,5 +78,14 @@ public class Reactor implements Runnable {
     }
     // End of Dispatch Loop
 
+    public static void main(String[] args) {
+        Thread reactorThread = null;
+        try {
+            reactorThread = new Thread(new Reactor(PORT));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        reactorThread.start();
+    }
 
 }

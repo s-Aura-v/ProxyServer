@@ -14,11 +14,14 @@ import static org.network.Config.*;
 
 public class Client implements Runnable {
     private int urlNum = 1;
+    private static final int PORT = 26880;
+    private static final String SERVER = "gee.cs.oswego.edu";
+
 
     @Override
     public void run() {
         try {
-            SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost", 26880));
+            SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress(SERVER, PORT));
             clientChannel.configureBlocking(false);
             byte[] seed = generateSessionKey();
             System.out.println(Arrays.toString(seed));
@@ -92,5 +95,9 @@ public class Client implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void main(String[] args) {
+        new Thread(new Client()).start();
     }
 }
