@@ -15,16 +15,13 @@ import static org.network.Config.*;
 public class Client implements Runnable {
     private int urlNum = 1;
     private static final int PORT = 26880;
-    private static final String SERVER = "gee.cs.oswego.edu";
-
+    private static final String SERVER = "localhost";
 
     @Override
     public void run() {
         try {
             SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress(SERVER, PORT));
             clientChannel.configureBlocking(false);
-            byte[] seed = generateSessionKey();
-            System.out.println(Arrays.toString(seed));
 
             // Sending the data
             System.out.println("Please enter the image address or enter 'exit' to terminate program: ");
@@ -33,9 +30,9 @@ public class Client implements Runnable {
             while (!url.equals("exit")) {
                 String safeURL = url.replaceAll("/", "__");
 
-
+                byte[] key = generateSessionKey();
                 byte[] urlData = url.getBytes();
-                byte[] urlPacket = createURLPacket(urlData, urlNum, seed);
+                byte[] urlPacket = createURLPacket(urlData, urlNum, key);
                 System.out.println(Arrays.toString(urlPacket));
                 System.out.println("Client: " + "Sending url " + urlNum);
                 urlNum++;
@@ -64,7 +61,7 @@ public class Client implements Runnable {
                     byte[] ack = createACKPacket(blockNumber);
                     clientChannel.write(ByteBuffer.wrap(ack));
 
-                    packets.add(encryptionCodec(data, seed));
+                    packets.add(encryptionCodec(data, key));
                     dataBuffer.clear();
                 }
                 long endTime = System.nanoTime();

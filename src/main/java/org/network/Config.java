@@ -130,14 +130,6 @@ public final class Config {
         }
     }
 
-    // xor shift
-    static long xorShift(long r) {
-        r ^= r << 13;
-        r ^= r >>> 7;
-        r ^= r << 17;
-        return r;
-    }
-
     static byte[] encryptionCodec(byte[] packetData, byte[] key) {
         byte[] encrypted = new byte[packetData.length];
         for (int i = 0; i < packetData.length; i++) {
@@ -146,31 +138,10 @@ public final class Config {
         return encrypted;
     }
 
-
     public static byte[] generateSessionKey() {
         SecureRandom secureRandom = new SecureRandom();
         byte[] byteArray = new byte[KEY_SIZE];
         secureRandom.nextBytes(byteArray);
         return byteArray;
     }
-
-
-    public static void main(String[] args) {
-        byte[] key = generateSessionKey();
-        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        byte[] value = new byte[64];
-        for (int i = 0; i < 64; i++) {
-            value[i] = (byte) chars.charAt(i % chars.length()); // wrap around if needed
-        }
-        System.out.println(Arrays.toString(value));
-        byte[] encryptionOne = encryptionCodec(value, key);
-        byte[] encryptionTwo = encryptionCodec(encryptionOne, key);
-        System.out.println(Arrays.toString(encryptionOne));
-        System.out.println(Arrays.toString(encryptionTwo));
-
-
-    }
-
-
-
 }

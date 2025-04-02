@@ -98,11 +98,10 @@ public class Handler implements Runnable {
             return;
         }
 
-
         // Case 2: New Image Request
         byte[] packetData = Arrays.copyOfRange(receivedData, BLOCK_SIZE + OPCODE_SIZE + KEY_SIZE, receivedData.length);
         byte[] key = (Arrays.copyOfRange(receivedData, BLOCK_SIZE + OPCODE_SIZE, receivedData.length - packetData.length));
-        System.out.println(key);
+        System.out.println(Arrays.toString(key));
         String url = new String(packetData, StandardCharsets.UTF_8);
         String safeUrl = url.replaceAll("/", "__");
         System.out.println(url);
