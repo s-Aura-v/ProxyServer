@@ -28,6 +28,7 @@ public class Handler implements Runnable {
     int leftPointer = 0;
     int rightPointer = 0;
     boolean sendingImage = false; // new state to differentiate url vs ack
+    byte[] key = new byte[KEY_SIZE];
 
 
     public Handler(Selector sel, SocketChannel c) throws IOException {
@@ -100,6 +101,8 @@ public class Handler implements Runnable {
 
         // Case 2: New Image Request
         byte[] packetData = Arrays.copyOfRange(receivedData, BLOCK_SIZE + OPCODE_SIZE + KEY_SIZE, receivedData.length);
+        byte[] key = (Arrays.copyOfRange(receivedData, BLOCK_SIZE + OPCODE_SIZE, receivedData.length - packetData.length));
+        System.out.println(key);
         String url = new String(packetData, StandardCharsets.UTF_8);
         String safeUrl = url.replaceAll("/", "__");
         System.out.println(url);
@@ -129,7 +132,8 @@ public class Handler implements Runnable {
         while ((rightPointer < leftPointer + SEND_WINDOW_SIZE) &&
                 (rightPointer < tcpSlidingWindow.size())) {
             byte[] packet = tcpSlidingWindow.get(rightPointer);
-            socket.write(ByteBuffer.wrap(packet));
+            byte[] encrypted = encryptionCodec(packet, key);
+            socket.write(ByteBuffer.wrap(encrypted));
             rightPointer++;
         }
 

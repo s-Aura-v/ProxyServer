@@ -23,7 +23,7 @@ public final class Config {
     public static final int MAX_PACKET_SIZE = 512;
     public static final int OPCODE_SIZE = 2;
     public static final int BLOCK_SIZE = 2;
-    public static final int KEY_SIZE = 8;
+    public static final int KEY_SIZE = 64;
     public static final String CACHE_PATH = "src/main/resources/img-cache/";
 
     // The TCP Sliding Window is an arraylist that stores data packets
@@ -138,32 +138,37 @@ public final class Config {
         return r;
     }
 
-    public static long generateSessionKey() {
+    static byte[] encryptionCodec(byte[] packetData, byte[] key) {
+        byte[] encrypted = new byte[packetData.length];
+        for (int i = 0; i < packetData.length; i++) {
+            encrypted[i] = (byte) (packetData[i] ^ key[i % key.length]);
+        }
+        return encrypted;
+    }
+
+
+    public static byte[] generateSessionKey() {
         SecureRandom secureRandom = new SecureRandom();
-        return secureRandom.nextLong(10000000,99999999);
-    }
-
-    public static byte[] longToBytes(long x) {
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.putLong(x);
-        return buffer.array();
-    }
-
-    public static long bytesToLong(byte[] bytes) {
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.put(bytes);
-        buffer.flip();
-        return buffer.getLong();
+        byte[] byteArray = new byte[KEY_SIZE];
+        secureRandom.nextBytes(byteArray);
+        return byteArray;
     }
 
 
     public static void main(String[] args) {
-        long value = 214914L;
-        byte[] longValue = longToBytes(value);
-        long reValue = bytesToLong(longValue);
-        System.out.println(value);
-        System.out.println(Arrays.toString(longValue));
-        System.out.println(reValue);
+        byte[] key = generateSessionKey();
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        byte[] value = new byte[64];
+        for (int i = 0; i < 64; i++) {
+            value[i] = (byte) chars.charAt(i % chars.length()); // wrap around if needed
+        }
+        System.out.println(Arrays.toString(value));
+        byte[] encryptionOne = encryptionCodec(value, key);
+        byte[] encryptionTwo = encryptionCodec(encryptionOne, key);
+        System.out.println(Arrays.toString(encryptionOne));
+        System.out.println(Arrays.toString(encryptionTwo));
+
+
     }
 
 
