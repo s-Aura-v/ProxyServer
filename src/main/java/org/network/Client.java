@@ -30,21 +30,20 @@ public class Client implements Runnable {
             while (!url.equals("exit")) {
                 String safeURL = url.replaceAll("/", "__");
 
-                byte[] key = generateSessionKey();
+                byte[] encryptionKey = generateSessionKey();
                 byte[] urlData = url.getBytes();
-                byte[] urlPacket = createURLPacket(urlData, urlNum, key);
-                System.out.println(Arrays.toString(urlPacket));
+                byte[] urlPacket = createURLPacket(urlData, urlNum, encryptionKey);
                 System.out.println("Client: " + "Sending url " + urlNum);
                 urlNum++;
 
                 long startTime = System.nanoTime();
-                System.out.println(startTime);
                 clientChannel.write(ByteBuffer.wrap(urlPacket));
                 ByteBuffer dataBuffer = ByteBuffer.allocate(MAX_PACKET_SIZE);
                 ArrayList<byte[]> packets = new ArrayList<>();
                 boolean finalPacket = false;
 
                 while (!finalPacket) {
+                    // new bug - because it's encrypted, you can't tell what the final packet is.
                     while (dataBuffer.position() < MAX_PACKET_SIZE) {
                         clientChannel.read(dataBuffer);
                         if (dataBuffer.get(0) == (byte) 7) {
@@ -56,16 +55,16 @@ public class Client implements Runnable {
 
                     byte[] data = new byte[dataBuffer.limit()];
                     dataBuffer.get(data);
+                    data = encryptionCodec(data, encryptionKey);
 
                     int blockNumber = ((data[2] & 0xff) << 8) | (data[3] & 0xff);
                     byte[] ack = createACKPacket(blockNumber);
                     clientChannel.write(ByteBuffer.wrap(ack));
 
-                    packets.add(encryptionCodec(data, key));
+                    packets.add(data);
                     dataBuffer.clear();
                 }
                 long endTime = System.nanoTime();
-                System.out.println(endTime);
 
                 ByteArrayOutputStream output = new ByteArrayOutputStream();
                 for (byte[] imagePacket : packets) {

@@ -11,6 +11,7 @@ import java.nio.file.StandardCopyOption;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 
 /*
 For now, I'll keep all my constants in here.
@@ -25,6 +26,8 @@ public final class Config {
     public static final int BLOCK_SIZE = 2;
     public static final int KEY_SIZE = 64;
     public static final String CACHE_PATH = "src/main/resources/img-cache/";
+    public static final int dropRate = 1;
+    public static boolean shouldDrop = false;
 
     // The TCP Sliding Window is an arraylist that stores data packets
     // the data packets are byte[]
@@ -69,7 +72,7 @@ public final class Config {
     // Add a session key in the url
     static byte[] createURLPacket(byte[] data, int blockNum, byte[] key) throws IOException {
         // Data Packets: opcode + block # + key + data
-        // the key is 8 bytes long
+        // the key is 64 bytes long
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         output.write(new byte[]{0x00, 0x03});
@@ -136,6 +139,11 @@ public final class Config {
             encrypted[i] = (byte) (packetData[i] ^ key[i % key.length]);
         }
         return encrypted;
+    }
+
+    static boolean shouldDropPacket() {
+        int rand = ThreadLocalRandom.current().nextInt(100);
+        return rand < dropRate;
     }
 
     public static byte[] generateSessionKey() {
