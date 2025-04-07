@@ -35,7 +35,13 @@ public class Reactor implements Runnable {
     public void run() {
         try {
             while (!Thread.interrupted()) {
-                selector.select();
+                int readyChannels = selector.select(Config.TIMEOUT);
+
+                // if there are no ready channels, then there is a timeout
+                if (readyChannels == 0) {
+                    checkForHandlerTimeouts();
+                }
+
                 Set<SelectionKey> selected = selector.selectedKeys();
                 Iterator<SelectionKey> it = selected.iterator();
                 while (it.hasNext()) {
@@ -86,6 +92,18 @@ public class Reactor implements Runnable {
             throw new RuntimeException(e);
         }
         reactorThread.start();
+    }
+
+    private void checkForHandlerTimeouts() {
+        long now = System.currentTimeMillis();
+        for (SelectionKey key : selector.keys()) {
+            if (!key.isValid()) continue;
+
+            Object attachment = key.attachment();
+            if (attachment instanceof Handler handler) {
+                handler.checkAckTimeout(now);
+            }
+        }
     }
 
 }

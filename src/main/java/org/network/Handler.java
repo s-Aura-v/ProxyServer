@@ -30,6 +30,9 @@ public class Handler implements Runnable {
     boolean sendingImage = false; // new state to differentiate url vs ack
     byte[] key = new byte[KEY_SIZE];
 
+    long lastAckTime = System.currentTimeMillis();
+    boolean packetLost = false;
+
 
     public Handler(Selector sel, SocketChannel c) throws IOException {
         cache = new Cache();
@@ -85,6 +88,8 @@ public class Handler implements Runnable {
                 if (!acks.contains(ackBlockNum)) {
                     acks.add(ackBlockNum);
                 }
+
+                lastAckTime = System.currentTimeMillis();
 
                 if (ackBlockNum == leftPointer) {
                     leftPointer++;
@@ -144,6 +149,29 @@ public class Handler implements Runnable {
         sk.interestOps(SelectionKey.OP_READ);
         sk.selector().wakeup();
     }
+
+//    void handleTimeout() {
+//        if (System.currentTimeMillis() - lastAckTime > TIMEOUT) {
+//            packetLost = true;
+//        }
+//    }
+    public void checkAckTimeout(long now) {
+        if (!sendingImage || leftPointer >= tcpSlidingWindow.size()) return;
+
+        if ((now - lastAckTime) > TIMEOUT) {
+            System.out.println("Timeout for block " + leftPointer + " — resending");
+
+            try {
+                byte[] packet = tcpSlidingWindow.get(leftPointer);
+                byte[] encrypted = encryptionCodec(packet, key);
+                socket.write(ByteBuffer.wrap(encrypted));
+                lastAckTime = now; // reset after resend
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 }
 
 

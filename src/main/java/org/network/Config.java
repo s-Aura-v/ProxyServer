@@ -28,6 +28,7 @@ public final class Config {
     public static final String CACHE_PATH = "src/main/resources/img-cache/";
     public static final int dropRate = 1;
     public static boolean shouldDrop = false;
+    public static final int TIMEOUT = 2000; // time in ms
 
     // The TCP Sliding Window is an arraylist that stores data packets
     // the data packets are byte[]
@@ -123,7 +124,7 @@ public final class Config {
     }
 
     // convert bytes to images
-    static void bytesToImage(byte[] imageBytes, String safeURL) throws IOException {
+    static void bytesToImage(byte[] imageBytes, String safeURL) {
         File file = new File(CACHE_PATH, safeURL);
         try (FileOutputStream fos = new FileOutputStream(file)) {
             fos.write(imageBytes);

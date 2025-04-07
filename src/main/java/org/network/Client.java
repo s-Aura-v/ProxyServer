@@ -18,13 +18,20 @@ public class Client implements Runnable {
 
     @Override
     public void run() {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Emulate packet loss? [Yes or No]");
+        if (scanner.nextLine().equalsIgnoreCase("yes")) {
+            shouldDrop = true;
+        } else {
+            shouldDrop = false;
+        }
+
         try {
             SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress(SERVER, PORT));
             clientChannel.configureBlocking(false);
 
             // Sending the data
             System.out.println("Please enter the image address or enter 'exit' to terminate program: ");
-            Scanner scanner = new Scanner(System.in);
             String url = scanner.nextLine();
             while (!url.equals("exit")) {
                 String safeURL = url.replaceAll("/", "__");
@@ -57,7 +64,12 @@ public class Client implements Runnable {
 
                     int blockNumber = ((data[2] & 0xff) << 8) | (data[3] & 0xff);
                     byte[] ack = createACKPacket(blockNumber);
-                    clientChannel.write(ByteBuffer.wrap(ack));
+                    if (shouldDrop && shouldDropPacket()) {
+                        // don't send the packet to simulate packet loss
+                        System.out.println("Packet Dropped");
+                    } else {
+                        clientChannel.write(ByteBuffer.wrap(ack));
+                    }
 
                     packets.add(data);
                     dataBuffer.clear();
