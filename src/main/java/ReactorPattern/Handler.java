@@ -1,4 +1,4 @@
-package org.network;
+package ReactorPattern;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import static org.network.Config.*;
+import static ReactorPattern.Config.*;
 
 public class Handler implements Runnable {
     int MAX_IN = 512;

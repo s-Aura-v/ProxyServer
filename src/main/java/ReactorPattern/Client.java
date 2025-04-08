@@ -1,4 +1,4 @@
-package org.network;
+package ReactorPattern;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -6,10 +6,9 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Scanner;
 
-import static org.network.Config.*;
+import static ReactorPattern.Config.*;
 
 public class Client implements Runnable {
     private int urlNum = 1;

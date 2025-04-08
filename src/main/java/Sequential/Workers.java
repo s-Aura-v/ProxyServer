@@ -96,6 +96,17 @@ public class Workers {
         return data;
     }
 
+    // the ack packet is used to slide the window over
+    public static byte[] createACKPacket(int blockNum) throws IOException {
+        // ACK Packets: opcode (4) + blockNum
+        // both are 2 bytes long = 4 bytes long
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        output.write(new byte[]{0x00, 0x04});
+        output.write((byte) (blockNum >> 8));
+        output.write((byte) (blockNum & 0xFF));
+        return output.toByteArray();
+    }
+
 
     public static void downloadImage(String safeURL) throws IOException {
         String fileURL = safeURL.replaceAll("__", "/");

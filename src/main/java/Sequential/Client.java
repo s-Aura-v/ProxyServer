@@ -9,7 +9,6 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
-
 public class Client {
     private static int urlNum = 1;
     private static final int PORT = 26880;
@@ -50,12 +49,19 @@ public class Client {
                     int length = in.readInt();
                     byte[] encryptedPacket = new byte[length];
                     in.readFully(encryptedPacket);
-                    if (encryptedPacket.length <= 0) {
+
+                    byte[] decryptedPacket = Workers.encryptionCodec(encryptedPacket, encryptionKey);
+                    int blockNumber = ((decryptedPacket[2] & 0xff) << 8) | (decryptedPacket[3] & 0xff);
+                    byte[] ack = Workers.createACKPacket(blockNumber);
+                    out.writeInt(ack.length);
+                    out.write(ack);
+
+                    packets.add(decryptedPacket);
+
+                    System.out.println(packets.size());
+                    if (encryptedPacket.length == 0) {
                         break;
                     }
-                    byte[] decryptedPacket = Workers.encryptionCodec(encryptedPacket, encryptionKey);
-                    packets.add(decryptedPacket);
-                    System.out.println(packets.size());
                 }
 
                 ByteArrayOutputStream output = new ByteArrayOutputStream();

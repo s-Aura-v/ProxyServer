@@ -1,4 +1,4 @@
-package org.network;
+package ReactorPattern;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -102,11 +102,6 @@ public final class Config {
         output.write((byte) (blockNum >> 8));
         output.write((byte) (blockNum & 0xFF));
         byte[] ackPacket = output.toByteArray();
-
-        // Debug
-//        System.out.print("Created ACK: " + ackPacket.length + " bytes: ");
-//        System.out.println(Arrays.toString(ackPacket));
-
         return ackPacket;
     }
 
