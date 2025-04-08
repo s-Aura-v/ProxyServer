@@ -31,7 +31,7 @@ public class Handler implements Runnable {
     byte[] key = new byte[KEY_SIZE];
 
     long lastAckTime = System.currentTimeMillis();
-    boolean packetLost = false;
+    boolean transferComplete = false;
 
 
     public Handler(Selector sel, SocketChannel c) throws IOException {
@@ -97,6 +97,9 @@ public class Handler implements Runnable {
                     state = SENDING;
                     sk.interestOps(SelectionKey.OP_WRITE);
                     sk.selector().wakeup();
+                    if (rightPointer >= tcpSlidingWindow.size()) {
+                        transferComplete = true;
+                    }
                 }
             }
 
@@ -156,6 +159,8 @@ public class Handler implements Runnable {
 //        }
 //    }
     public void checkAckTimeout(long now) {
+        if (transferComplete) return;
+
         if (!sendingImage || leftPointer >= tcpSlidingWindow.size()) return;
 
         if ((now - lastAckTime) > TIMEOUT) {
