@@ -49,6 +49,9 @@ public class Client {
                     int length = in.readInt();
                     byte[] encryptedPacket = new byte[length];
                     in.readFully(encryptedPacket);
+                    if (encryptedPacket.length == 0) {
+                        break;
+                    }
 
                     byte[] decryptedPacket = Workers.encryptionCodec(encryptedPacket, encryptionKey);
                     int blockNumber = ((decryptedPacket[2] & 0xff) << 8) | (decryptedPacket[3] & 0xff);
@@ -59,9 +62,6 @@ public class Client {
                     packets.add(decryptedPacket);
 
                     System.out.println(packets.size());
-                    if (encryptedPacket.length == 0) {
-                        break;
-                    }
                 }
 
                 ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -74,9 +74,9 @@ public class Client {
                 output.close();
 
                 double imageSizeInMB = (finalImageFrame.length * 8) / 1e6;
-                System.out.println("image size: " + imageSizeInMB);
-//                System.out.println("Image Size in MB: " + imageSizeInMB);
+                System.out.println("Image Size in MB: " + imageSizeInMB);
 
+                System.out.println("Please enter the image address or enter 'exit' to terminate program: ");
                 url = scanner.nextLine();
             } catch (IOException e) {
                 System.out.println("Client " + urlNum + " failed to connect");

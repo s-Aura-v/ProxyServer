@@ -42,11 +42,11 @@ public class Server {
 
                     for (; ; ) {
                         try {
-
                             /* SETUP: GET DATA */
                             int length = in.readInt();
                             byte[] receivedData = new byte[length];
                             in.readFully(receivedData);
+                            System.out.println(Arrays.toString(receivedData));
 
                             if (state == WAITING) {
                                 /* CASE 2: READ URL AND DOWNLOAD DATA */
@@ -83,6 +83,10 @@ public class Server {
                                         rightPointer++;
                                     }
                                     state = RECEIVING;
+                                    if (rightPointer == tcpSlidingWindow.size()) {
+                                        state = TERMINATING;
+                                    }
+                                    break;
                                 }
                             }
 
@@ -102,6 +106,9 @@ public class Server {
                             }
 
                             if (state == TERMINATING) {
+                                tcpSlidingWindow.clear();
+                                acks.clear();
+                                state = WAITING;
                                 out.writeInt(0);
                             }
 
