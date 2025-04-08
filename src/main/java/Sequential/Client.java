@@ -44,6 +44,14 @@ public class Client {
                 urlNum++;
 
 
+                int length = in.readInt();
+                byte[] packet = new byte[length];
+                in.readFully(packet);
+                double imageSizeInMB = (packet.length * 8) / 1e6;
+                System.out.println("Image Size in MB: " + imageSizeInMB);
+
+
+
                 url = scanner.nextLine();
             } catch (IOException e) {
                 System.out.println("Client " + urlNum + " failed to connect");
@@ -55,6 +63,16 @@ public class Client {
                  DataInputStream in = new DataInputStream(echoSocket.getInputStream())) {
 
                 echoSocket.setSoTimeout(30000);
+
+
+//                double packetsTimeInSeconds = (endTime - startTime) / 1e9;
+//                System.out.println("Packet Time in Seconds: " + packetsTimeInSeconds);
+//                double throughput = (imageSizeInMB/packetsTimeInSeconds);
+//                System.out.println("The throughput of this operation was " + throughput + " Mb/s");
+
+
+
+
 
                 // Figure Send out
 //            for (int i = 0; i < encryptedPackets.size(); i++) {

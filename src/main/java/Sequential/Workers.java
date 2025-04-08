@@ -1,13 +1,25 @@
 package Sequential;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Workers {
+    public static final int SEND_WINDOW_SIZE = 4;
+    public static final int MAX_PACKET_SIZE = 512;
     public static final int OPCODE_SIZE = 2;
     public static final int BLOCK_SIZE = 2;
     public static final int KEY_SIZE = 64;
+    public static final String CACHE_PATH = "src/main/resources/img-cache/";
+
     // 1 - READ / 2 - WRITE
 
     // URL Packet = opcode + encryption-key + url
@@ -24,11 +36,59 @@ public class Workers {
         return output.toByteArray();
     }
 
+    static ArrayList<byte[]> createTCPSlidingWindow(byte[] imageData) throws IOException {
+        ArrayList<byte[]> window = new ArrayList<>();
+        int blockNum = 0;
+        int packetSize = MAX_PACKET_SIZE - OPCODE_SIZE - BLOCK_SIZE;
+        for (int i = 0; i < imageData.length; i += packetSize) {
+            byte[] partition = Arrays.copyOfRange(imageData, i, Math.min(imageData.length, i + packetSize));
+            byte[] packet = createDataPacket(partition, blockNum);
+            window.add(packet);
+            blockNum++;
+        }
+        // 7 indicates final packet - tells client that it can stop reading.
+        byte[] testPacket = window.get(window.size() - 2);
+        testPacket[0] = 7;
+        window.set(window.size() - 1, testPacket);
+
+        return window;
+    }
+
+    //byte b = (byte)0xC8;
+    //int v1 = b;       // v1 is -56 (0xFFFFFFC8)
+    //int v2 = b & 0xFF // v2 is 200 (0x000000C8)
+    // there's a reason v2 is better
+    static byte[] createDataPacket(byte[] data, int blockNum) throws IOException {
+        // Data Packets: opcode + block # + data
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        output.write(new byte[]{0x00, 0x03});
+        // If the size is too big to fit inside a 8 byte code, then you have to split it into low and high bytes.
+        // 16 bytes = 128 bits = 2^128 amount of bits
+        output.write((byte) (blockNum >> 8)); // High byte
+        output.write((byte) (blockNum & 0xFF)); // Low byte
+        output.write(data);
+
+        return output.toByteArray();
+    }
+
     public static byte[] generateSessionKey() {
         SecureRandom secureRandom = new SecureRandom();
         byte[] byteArray = new byte[KEY_SIZE];
         secureRandom.nextBytes(byteArray);
         return byteArray;
     }
+
+    public static void downloadImage(String safeURL) throws IOException {
+        String fileURL = safeURL.replaceAll("__", "/");
+        InputStream in = new URL(fileURL).openStream();
+        Files.copy(in, Paths.get("src/main/resources/img-cache/" + safeURL), StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    static byte[] imageToBytes(String filePath) throws IOException {
+        File file = new File(filePath);
+        return Files.readAllBytes(file.toPath());
+    }
+
 
 }

@@ -7,12 +7,18 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 
-import static org.network.Config.*;
+import static Sequential.Workers.*;
 
 public class Server {
     static final int PORT = 26880;
+
+    static Cache cache = new Cache();
+    static ArrayList<byte[]> tcpSlidingWindow = new ArrayList<>();
+    static int leftPointer = 0;
+    static int rightPointer = 0;
 
     public static void main(String[] args) {
         System.out.println("Waiting for Connection");
@@ -28,7 +34,7 @@ public class Server {
                     for (; ; ) {
                         try {
 
-                            // CASE 2: READ URL AND DOWNLOAD DATA
+                            /* CASE 2: READ URL AND DOWNLOAD DATA */
                             int length = in.readInt();
                             byte[] receivedData = new byte[length];
                             in.readFully(receivedData);
@@ -40,7 +46,23 @@ public class Server {
                             String safeUrl = url.replaceAll("/", "__");
                             System.out.println(url);
 
+                            byte[] imageBytes;
+                            if (cache.hasKey(safeUrl)) {
+                                imageBytes = cache.get(safeUrl);
+                            } else {
+                                Workers.downloadImage(safeUrl);
+                                imageBytes = Workers.imageToBytes(CACHE_PATH + safeUrl);
+                                cache.addToCache(safeUrl, imageBytes);
+                            }
 
+                            tcpSlidingWindow = Workers.createTCPSlidingWindow(imageBytes);
+                            leftPointer = 0;
+                            rightPointer = 0;
+
+                            System.out.println("Writing bytes to client");
+                            out.writeInt(imageBytes.length);
+                            out.write(imageBytes);
+                            System.out.println("Bytes written to client");
 
 //                            String message = new String(Helpers.xorEncode(byteArray, Helpers.key));
 //                            System.out.println("Decoded byte array: " + message);
