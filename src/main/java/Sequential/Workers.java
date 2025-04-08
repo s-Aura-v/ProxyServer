@@ -1,9 +1,6 @@
 package Sequential;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -79,6 +76,27 @@ public class Workers {
         return byteArray;
     }
 
+    public static byte[] encryptionCodec(byte[] packetData, byte[] key) {
+        byte[] encrypted = new byte[packetData.length];
+        // Keep the op-code and block number the same
+        encrypted[0] = packetData[0];
+        encrypted[1] = packetData[1];
+        encrypted[2] = packetData[2];
+        encrypted[3] = packetData[3];
+        // start the encryption for the data
+        for (int i = BLOCK_SIZE + OPCODE_SIZE; i < packetData.length; i++) {
+            encrypted[i] = (byte) (packetData[i] ^ key[i % key.length]);
+        }
+        return encrypted;
+    }
+
+    public static byte[] extractPacketData(byte[] dataPacket) {
+        byte[] data = new byte[dataPacket.length - OPCODE_SIZE - BLOCK_SIZE];
+        System.arraycopy(dataPacket, OPCODE_SIZE + BLOCK_SIZE, data, 0, dataPacket.length - OPCODE_SIZE - BLOCK_SIZE);
+        return data;
+    }
+
+
     public static void downloadImage(String safeURL) throws IOException {
         String fileURL = safeURL.replaceAll("__", "/");
         InputStream in = new URL(fileURL).openStream();
@@ -89,6 +107,17 @@ public class Workers {
         File file = new File(filePath);
         return Files.readAllBytes(file.toPath());
     }
+
+    static void bytesToImage(byte[] imageBytes, String safeURL) {
+        File file = new File(CACHE_PATH, safeURL);
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(imageBytes);
+        } catch (IOException e) {
+            System.out.println("Packet incomplete; Unable to save file ");
+        }
+    }
+
+
 
 
 }

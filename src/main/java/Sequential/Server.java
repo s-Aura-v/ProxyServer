@@ -6,9 +6,11 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Scanner;
 
 import static Sequential.Workers.*;
 
@@ -33,15 +35,14 @@ public class Server {
 
                     for (; ; ) {
                         try {
-
                             /* CASE 2: READ URL AND DOWNLOAD DATA */
                             int length = in.readInt();
                             byte[] receivedData = new byte[length];
                             in.readFully(receivedData);
 
                             // URL PACKET = OPCODE + KEY + DATA
-                            byte[] packetData = Arrays.copyOfRange(receivedData,OPCODE_SIZE + KEY_SIZE, receivedData.length);
-                            byte[] key = (Arrays.copyOfRange(receivedData,  OPCODE_SIZE, receivedData.length - packetData.length));
+                            byte[] packetData = Arrays.copyOfRange(receivedData, OPCODE_SIZE + KEY_SIZE, receivedData.length);
+                            byte[] key = (Arrays.copyOfRange(receivedData, OPCODE_SIZE, receivedData.length - packetData.length));
                             String url = new String(packetData, StandardCharsets.UTF_8);
                             String safeUrl = url.replaceAll("/", "__");
                             System.out.println(url);
@@ -58,18 +59,28 @@ public class Server {
                             tcpSlidingWindow = Workers.createTCPSlidingWindow(imageBytes);
                             leftPointer = 0;
                             rightPointer = 0;
+                            System.out.println("window created: " + tcpSlidingWindow.size());
 
-                            System.out.println("Writing bytes to client");
-                            out.writeInt(imageBytes.length);
-                            out.write(imageBytes);
-                            System.out.println("Bytes written to client");
+                            while (leftPointer < tcpSlidingWindow.size()) {
+                                while (leftPointer + SEND_WINDOW_SIZE > rightPointer
+                                        && rightPointer < tcpSlidingWindow.size()) {
+                                    byte[] packet = tcpSlidingWindow.get(rightPointer);
+                                    byte[] encrypted = Workers.encryptionCodec(packet, key);
+                                    out.writeInt(encrypted.length);
+                                    out.write(encrypted);
+                                    rightPointer++;
+                                }
+                                leftPointer++;
+                            }
 
-//                            String message = new String(Helpers.xorEncode(byteArray, Helpers.key));
-//                            System.out.println("Decoded byte array: " + message);
-//                            out.writeInt(packetData.length);
-//                            out.write(byteArray);
+                            // test
+                            out.writeInt(0);
 
-                            out.flush();
+//                            Scanner scanner = new Scanner(System.in);
+//                            String quit = scanner.nextLine();
+//                            while (!quit.equals("quit")) {
+//                                quit = scanner.nextLine();
+//                            }
 
                         } catch (EOFException e) {
                             System.out.println("Client disconnected.");
