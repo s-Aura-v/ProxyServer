@@ -6,6 +6,10 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+
+import static org.network.Config.*;
 
 public class Server {
     static final int PORT = 26880;
@@ -23,15 +27,25 @@ public class Server {
 
                     for (; ; ) {
                         try {
-                            int length = in.readInt();
 
-                            byte[] byteArray = new byte[length];
-                            in.readFully(byteArray);
+                            // CASE 2: READ URL AND DOWNLOAD DATA
+                            int length = in.readInt();
+                            byte[] receivedData = new byte[length];
+                            in.readFully(receivedData);
+
+                            // URL PACKET = OPCODE + KEY + DATA
+                            byte[] packetData = Arrays.copyOfRange(receivedData,OPCODE_SIZE + KEY_SIZE, receivedData.length);
+                            byte[] key = (Arrays.copyOfRange(receivedData,  OPCODE_SIZE, receivedData.length - packetData.length));
+                            String url = new String(packetData, StandardCharsets.UTF_8);
+                            String safeUrl = url.replaceAll("/", "__");
+                            System.out.println(url);
+
+
 
 //                            String message = new String(Helpers.xorEncode(byteArray, Helpers.key));
 //                            System.out.println("Decoded byte array: " + message);
-                            out.writeInt(byteArray.length);
-                            out.write(byteArray);
+//                            out.writeInt(packetData.length);
+//                            out.write(byteArray);
 
                             out.flush();
 
