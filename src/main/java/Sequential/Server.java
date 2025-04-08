@@ -24,7 +24,9 @@ public class Server {
     static double lastAckTime = 0;
 
     private static int WINDOW_SIZE = 4;
-    static final int WAITING = 0, ACKING = 1, SLIDING = 2;
+    static final int WAITING = 0, SENDING = 1, RECEIVING = 2, TERMINATING = 3;
+    static int state = WAITING;
+    static byte[] encryptionKey;
 
 
     public static void main(String[] args) {
@@ -46,66 +48,62 @@ public class Server {
                             byte[] receivedData = new byte[length];
                             in.readFully(receivedData);
 
-                            /* CASE 1: RECEIVE ACKS */
+                            if (state == WAITING) {
+                                /* CASE 2: READ URL AND DOWNLOAD DATA */
+                                // URL PACKET = OPCODE + KEY + DATA
+                                byte[] packetData = Arrays.copyOfRange(receivedData, OPCODE_SIZE + KEY_SIZE, receivedData.length);
+                                encryptionKey = (Arrays.copyOfRange(receivedData, OPCODE_SIZE, receivedData.length - packetData.length));
+                                String url = new String(packetData, StandardCharsets.UTF_8);
+                                String safeUrl = url.replaceAll("/", "__");
+                                System.out.println(url);
 
-                            if (length == 4) {
-                                slideWindow(receivedData);
-//                                for (int i = 0; (i + (WINDOW_SIZE - 1)) < receivedData.length; i += WINDOW_SIZE) {
-//                                    int ackBlockNum = ((receivedData[i + 2] & 0xff) << 8) | (receivedData[i + 3] & 0xff);
-//                                    acks.add(ackBlockNum);
-//                                    lastAckTime = System.currentTimeMillis();
-//                                }
-//                                while (acks.contains(leftPointer)) {
-//                                    leftPointer++;
-//                                }
-//                                return;
+                                byte[] imageBytes;
+                                if (cache.hasKey(safeUrl)) {
+                                    imageBytes = cache.get(safeUrl);
+                                } else {
+                                    Workers.downloadImage(safeUrl);
+                                    imageBytes = Workers.imageToBytes(CACHE_PATH + safeUrl);
+                                    cache.addToCache(safeUrl, imageBytes);
+                                }
+
+                                tcpSlidingWindow = Workers.createTCPSlidingWindow(imageBytes);
+                                leftPointer = 0;
+                                rightPointer = 0;
+                                state = SENDING;
                             }
 
-                            /* CASE 2: READ URL AND DOWNLOAD DATA */
-                            // URL PACKET = OPCODE + KEY + DATA
-                            byte[] packetData = Arrays.copyOfRange(receivedData, OPCODE_SIZE + KEY_SIZE, receivedData.length);
-                            byte[] key = (Arrays.copyOfRange(receivedData, OPCODE_SIZE, receivedData.length - packetData.length));
-                            String url = new String(packetData, StandardCharsets.UTF_8);
-                            String safeUrl = url.replaceAll("/", "__");
-                            System.out.println(url);
-
-                            byte[] imageBytes;
-                            if (cache.hasKey(safeUrl)) {
-                                imageBytes = cache.get(safeUrl);
-                            } else {
-                                Workers.downloadImage(safeUrl);
-                                imageBytes = Workers.imageToBytes(CACHE_PATH + safeUrl);
-                                cache.addToCache(safeUrl, imageBytes);
+                            if (state == SENDING) {
+                                while (leftPointer < tcpSlidingWindow.size()) {
+                                    while (leftPointer + SEND_WINDOW_SIZE > rightPointer
+                                            && rightPointer < tcpSlidingWindow.size()) {
+                                        byte[] packet = tcpSlidingWindow.get(rightPointer);
+                                        byte[] encrypted = Workers.encryptionCodec(packet, encryptionKey);
+                                        out.writeInt(encrypted.length);
+                                        out.write(encrypted);
+                                        rightPointer++;
+                                    }
+                                    state = RECEIVING;
+                                }
                             }
 
-                            tcpSlidingWindow = Workers.createTCPSlidingWindow(imageBytes);
-                            leftPointer = 0;
-                            rightPointer = 0;
-                            System.out.println("window created: " + tcpSlidingWindow.size());
+                            if (state == RECEIVING) {
+                                /* CASE 1: RECEIVE ACKS */
+                                while (state == RECEIVING) {
+                                    int ackBlockNum = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
+                                    acks.add(ackBlockNum);
+                                    lastAckTime = System.currentTimeMillis();
 
+                                    while (acks.contains(leftPointer)) {
+                                        leftPointer++;
+                                    }
 
-                            slidingWindowProtocol(out, key);
-//                            while (leftPointer < tcpSlidingWindow.size()) {
-//                                while (leftPointer + SEND_WINDOW_SIZE > rightPointer
-//                                        && rightPointer < tcpSlidingWindow.size()) {
-//                                    byte[] packet = tcpSlidingWindow.get(rightPointer);
-//                                    byte[] encrypted = Workers.encryptionCodec(packet, key);
-//                                    out.writeInt(encrypted.length);
-//                                    out.write(encrypted);
-//                                    rightPointer++;
-//                                }
-//                                leftPointer++;
-//                            }
+                                    state = SENDING;
+                                }
+                            }
 
-
-                            // test
-                            out.writeInt(0);
-
-//                            Scanner scanner = new Scanner(System.in);
-//                            String quit = scanner.nextLine();
-//                            while (!quit.equals("quit")) {
-//                                quit = scanner.nextLine();
-//                            }
+                            if (state == TERMINATING) {
+                                out.writeInt(0);
+                            }
 
                         } catch (EOFException e) {
                             System.out.println("Client disconnected.");
@@ -130,31 +128,6 @@ public class Server {
         } catch (IOException ex) {
             ex.printStackTrace();
             System.exit(-1);
-        }
-    }
-
-     static void slideWindow(byte[] receivedData) throws IOException {
-        for (int i = 0; (i + (WINDOW_SIZE - 1)) < receivedData.length; i += WINDOW_SIZE) {
-            int ackBlockNum = ((receivedData[i + 2] & 0xff) << 8) | (receivedData[i + 3] & 0xff);
-            acks.add(ackBlockNum);
-            lastAckTime = System.currentTimeMillis();
-        }
-        while (acks.contains(leftPointer)) {
-            leftPointer++;
-        }
-    }
-
-    static void slidingWindowProtocol(DataOutputStream out, byte[] key) throws IOException {
-        while (leftPointer < tcpSlidingWindow.size()) {
-            while (leftPointer + SEND_WINDOW_SIZE > rightPointer
-                    && rightPointer < tcpSlidingWindow.size()) {
-                byte[] packet = tcpSlidingWindow.get(rightPointer);
-                byte[] encrypted = Workers.encryptionCodec(packet, key);
-                out.writeInt(encrypted.length);
-                out.write(encrypted);
-                rightPointer++;
-            }
-            leftPointer++;
         }
     }
 }
