@@ -31,7 +31,7 @@ public class Handler implements Runnable {
     byte[] key = new byte[KEY_SIZE];
 
     long lastAckTime = System.currentTimeMillis();
-    boolean packetLost = false;
+    boolean imageSendComplete = false;
 
 
     public Handler(Selector sel, SocketChannel c) throws IOException {
@@ -90,7 +90,7 @@ public class Handler implements Runnable {
                 lastAckTime = System.currentTimeMillis();
             }
 
-// Try to slide the window forward
+            // Try to slide the window forward
             while (acks.contains(leftPointer)) {
                 leftPointer++;
                 if (leftPointer < tcpSlidingWindow.size()) {
@@ -140,7 +140,7 @@ public class Handler implements Runnable {
             rightPointer++;
         }
 
-        if (leftPointer >= tcpSlidingWindow.size()) {
+        if (rightPointer >= tcpSlidingWindow.size()) {
             System.out.println("All packets sent, waiting for final ACKs");
             sendingImage = false;
         }
@@ -150,11 +150,6 @@ public class Handler implements Runnable {
         sk.selector().wakeup();
     }
 
-//    void handleTimeout() {
-//        if (System.currentTimeMillis() - lastAckTime > TIMEOUT) {
-//            packetLost = true;
-//        }
-//    }
     public void checkAckTimeout(long now) {
         if (!sendingImage || leftPointer >= tcpSlidingWindow.size()) return;
 
