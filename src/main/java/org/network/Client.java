@@ -14,7 +14,7 @@ import static org.network.Config.*;
 public class Client implements Runnable {
     private int urlNum = 1;
     private static final int PORT = 26880;
-    private static final String SERVER = "localhost";
+    private static final String SERVER = "moxie.cs.oswego.edu";
 
     @Override
     public void run() {

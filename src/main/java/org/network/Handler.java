@@ -84,22 +84,22 @@ public class Handler implements Runnable {
         if (receivedData.length >= 4 && receivedData[1] == 4) {
             for (int i = 0; i + 3 < receivedData.length; i += 4) {
                 int ackBlockNum = ((receivedData[i + 2] & 0xff) << 8) | (receivedData[i + 3] & 0xff);
-//                System.out.println("Received ACK for block: " + ackBlockNum);
                 if (!acks.contains(ackBlockNum)) {
                     acks.add(ackBlockNum);
                 }
-
                 lastAckTime = System.currentTimeMillis();
+            }
 
-                if (ackBlockNum == leftPointer) {
-                    leftPointer++;
-                    if (leftPointer < tcpSlidingWindow.size()) {
-                        state = SENDING;
-                        sk.interestOps(SelectionKey.OP_WRITE);
-                        sk.selector().wakeup();
-                    }
+// Try to slide the window forward
+            while (acks.contains(leftPointer)) {
+                leftPointer++;
+                if (leftPointer < tcpSlidingWindow.size()) {
+                    state = SENDING;
+                    sk.interestOps(SelectionKey.OP_WRITE);
+                    sk.selector().wakeup();
                 }
             }
+
             return;
         }
 
