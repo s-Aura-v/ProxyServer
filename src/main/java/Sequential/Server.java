@@ -27,7 +27,7 @@ public class Server {
     static byte[] encryptionKey;
 
     static DataOutputStream out;
-    static final int TIMEOUT_MS = 3000;
+    static final int TIMEOUT_MS = 1000;
     public static int sendWindowSize = 4;
 
     static boolean timedOut = false;
@@ -51,7 +51,6 @@ public class Server {
 
                     for (; ; ) {
                         try {
-
 
                             /* SETUP: GET DATA */
                             int length = 0;
@@ -85,6 +84,7 @@ public class Server {
                                 tcpSlidingWindow.clear();
                                 acks.clear();
                                 state = WAITING;
+                                client.setSoTimeout(Integer.MAX_VALUE); // let's set the timeout to infinite so that it doesn't timeout without new url
                                 out.writeInt(0);
                                 System.out.println("Image Complete. Awaiting further images. ");
                             }

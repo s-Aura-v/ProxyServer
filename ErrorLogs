@@ -44,6 +44,8 @@ Solution: Moving when I entered the terminating phase
 9. Rather than working on perfecting one item at a time, it might be better to make sure that the one item works flawlessly through all possible inputs.
 a. for window size, there seems to be an error with
 
+10. Use SocketTimeoutException for socket.setSeoTimeout to continue from where the catch block left off
+
 Architect:
 1. Start Reactor
 2. Reactor waits for client message
