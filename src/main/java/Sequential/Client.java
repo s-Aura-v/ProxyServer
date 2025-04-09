@@ -1,15 +1,16 @@
 package Sequential;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
-import java.net.UnknownHostException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Scanner;
 import java.util.concurrent.ThreadLocalRandom;
+
+import static Sequential.Workers.CACHE_PATH;
+import static Sequential.Workers.throughputLineGraph;
 
 public class Client {
     private static int urlNum = 1;
@@ -18,10 +19,10 @@ public class Client {
     private static final int DROP_PERCENTAGE = 1;
 
     private static final String SERVER = "localhost";
-    private static ArrayList<Integer> throughputData = new ArrayList<>();
+    private static ArrayList<String> throughputData = new ArrayList<>();
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         // Initial Setup
         Scanner scanner = new Scanner(System.in);
         System.out.println("Emulate packet loss? [Yes or No]");
@@ -63,9 +64,9 @@ public class Client {
                     byte[] decryptedPacket = Workers.encryptionCodec(encryptedPacket, encryptionKey);
                     int blockNumber = ((decryptedPacket[2] & 0xff) << 8) | (decryptedPacket[3] & 0xff);
                     byte[] ack = Workers.createACKPacket(blockNumber);
-                    System.out.println(blockNumber);
+//                    System.out.println(blockNumber);
                     if (enableDropEmulation && shouldDropPacket()) {
-                        System.out.println("Packet Dropped");
+//                        System.out.println("Packet Dropped");
                     } else {
                         out.writeInt(ack.length);
                         out.write(ack);
@@ -95,14 +96,14 @@ public class Client {
                 System.out.println("Image Size in MB: " + imageSizeInMB + " \n" +
                         "Time: " + timeInSeconds + " \n" +
                         " Throughput: " + throughput);
-
+                throughputData.add(String.valueOf(throughput));
 
                 System.out.println("Please enter the image address or enter 'exit' to terminate program: ");
                 url = scanner.nextLine();
             } catch (IOException e) {
                 System.out.println("Client " + urlNum + " failed to connect");
             } finally {
-                // graph
+                Files.write(Path.of("src/main/resources/data/local-local, 1, drops"), throughputData, Charset.defaultCharset());
             }
         }
     }

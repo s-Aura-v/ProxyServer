@@ -1,5 +1,12 @@
 package Sequential;
 
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartUtilities;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
+
 import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
@@ -121,6 +128,38 @@ public class Workers {
         } catch (IOException e) {
             System.out.println("Packet incomplete; Unable to save file ");
         }
+    }
+
+    static void throughputLineGraph(ArrayList<Double> throughputData) throws IOException {
+        String dataName = "Local-Local, 8";
+        String graphTitle = "Throughput on a Local-Local Connection";
+        String xAxis = "iteration";
+        String yAxis = "graph";
+        XYSeries data = new XYSeries(dataName);
+
+        for (int i = 1; i <= throughputData.size(); i++) {
+            data.add(i, throughputData.get(i));
+        }
+
+        XYSeriesCollection dataset = new XYSeriesCollection( );
+        dataset.addSeries(data);
+
+        JFreeChart xylineChart = ChartFactory.createXYLineChart(
+                graphTitle,
+                xAxis,
+                yAxis,
+                dataset,
+                PlotOrientation.VERTICAL,
+                true,true,false);
+
+        int width = 640;   /* Width of the image */
+        int height = 480;  /* Height of the image */
+        File XYChart = new File( "src/main/resources/data/XYLineChart.jpeg" );
+        ChartUtilities.saveChartAsJPEG( XYChart, xylineChart, width, height);
+    }
+
+    static void combinedDataGraphs(String folderLocation) {
+
     }
 
 

@@ -28,16 +28,16 @@ public class Server {
 
     static DataOutputStream out;
     static final int TIMEOUT_MS = 1000;
-    public static int sendWindowSize = 4;
+    public static int sendWindowSize = 8;
 
     static boolean timedOut = false;
 
 
     public static void main(String[] args) throws SocketTimeoutException {
-//        Scanner scanner = new Scanner(System.in);
-//        System.out.println("Please enter window size: [1, 8, 64]" );
-//        sendWindowSize = scanner.nextInt();
-//        scanner.close();
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Please enter window size: [1, 8, 64]" );
+        sendWindowSize = scanner.nextInt();
+        scanner.close();
         System.out.println("Waiting for Connection");
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
@@ -62,7 +62,7 @@ public class Server {
                             }
                             byte[] receivedData = new byte[length];
                             in.readFully(receivedData);
-                            System.out.println(Arrays.toString(receivedData));
+//                            System.out.println(Arrays.toString(receivedData));
 
                             // CASE 1: ACK
                             if (receivedData.length >= 4 && receivedData[1] == 4) {
@@ -100,11 +100,6 @@ public class Server {
                     }
                     out.close();
                     in.close();
-                } catch (SocketTimeoutException e) {
-                    System.out.println("Lost packet. Resending... " + leftPointer);
-                    writeLostPacket();
-                    lastAckTime = System.currentTimeMillis();
-                    state = SENDING;
                 } catch (IOException e) {
                     System.err.println("Error reading from client: " + e.getMessage());
                     timedOut = true;
@@ -127,7 +122,7 @@ public class Server {
         encryptionKey = (Arrays.copyOfRange(receivedData, OPCODE_SIZE, receivedData.length - packetData.length));
         String url = new String(packetData, StandardCharsets.UTF_8);
         String safeUrl = url.replaceAll("/", "__");
-        System.out.println(url);
+//        System.out.println(url);
 
         byte[] imageBytes;
         if (cache.hasKey(safeUrl)) {
@@ -154,7 +149,7 @@ public class Server {
             out.write(encrypted);
             rightPointer++;
         }
-        System.out.println(leftPointer);
+//        System.out.println(leftPointer);
     }
 
     static void readAcks(byte[] receivedData) throws IOException {
