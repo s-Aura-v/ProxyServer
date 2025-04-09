@@ -63,8 +63,9 @@ public class Client {
                     byte[] decryptedPacket = Workers.encryptionCodec(encryptedPacket, encryptionKey);
                     int blockNumber = ((decryptedPacket[2] & 0xff) << 8) | (decryptedPacket[3] & 0xff);
                     byte[] ack = Workers.createACKPacket(blockNumber);
+                    System.out.println(blockNumber);
                     if (enableDropEmulation && shouldDropPacket()) {
-//                        System.out.println("Packet Dropped");
+                        System.out.println("Packet Dropped");
                     } else {
                         out.writeInt(ack.length);
                         out.write(ack);

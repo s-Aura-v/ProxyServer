@@ -27,8 +27,8 @@ public class Server {
     static byte[] encryptionKey;
 
     static DataOutputStream out;
-    static final int TIMEOUT_MS = 1000;
-    public static int sendWindowSize = 8;
+    static final int TIMEOUT_MS = 3000;
+    public static int sendWindowSize = 64;
 
 
     public static void main(String[] args) throws SocketTimeoutException {
@@ -46,15 +46,16 @@ public class Server {
                 try (DataInputStream in = new DataInputStream(client.getInputStream())) {
                     out = new DataOutputStream(client.getOutputStream());
 
+                    client.setSoTimeout(TIMEOUT_MS);
                     for (; ; ) {
                         try {
                             /* SETUP: GET DATA */
                             int length = in.readInt();
                             byte[] receivedData = new byte[length];
                             in.readFully(receivedData);
+                            System.out.println(Arrays.toString(receivedData));
 
                             // CASE 1: ACK
-                            // maybe i can just send all acks from the client at once
                             if (receivedData.length >= 4 && receivedData[1] == 4) {
                                 readAcks(receivedData);
                             }
@@ -83,6 +84,7 @@ public class Server {
                             break;
                         } catch (IOException e) {
                             System.err.println("Error reading from client: " + e.getMessage());
+
                             break;
                         }
                     }
@@ -124,26 +126,21 @@ public class Server {
         leftPointer = 0;
         rightPointer = 0;
 
-        slidingWindowProtocol();
         state = SENDING;
     }
 
     static void slidingWindowProtocol() throws IOException {
-        while (leftPointer < tcpSlidingWindow.size()) {
-            while (leftPointer + sendWindowSize > rightPointer
-                    && rightPointer < tcpSlidingWindow.size()) {
-                byte[] packet = tcpSlidingWindow.get(rightPointer);
-                byte[] encrypted = Workers.encryptionCodec(packet, encryptionKey);
-                out.writeInt(encrypted.length);
-                out.write(encrypted);
-                rightPointer++;
-            }
-            while (acks.contains(leftPointer)) {
-                leftPointer++;
-            }
-            if (!acks.contains(leftPointer)) {
-                break;
-            }
+        while (leftPointer + sendWindowSize > rightPointer
+                && rightPointer < tcpSlidingWindow.size()) {
+            byte[] packet = tcpSlidingWindow.get(rightPointer);
+            byte[] encrypted = Workers.encryptionCodec(packet, encryptionKey);
+            out.writeInt(encrypted.length);
+            out.write(encrypted);
+            rightPointer++;
+        }
+        System.out.println(leftPointer);
+        while (acks.contains(leftPointer)) {
+            leftPointer++;
         }
     }
 
@@ -159,10 +156,9 @@ public class Server {
         if (leftPointer >= tcpSlidingWindow.size()) {
             state = TERMINATING;
         } else {
-            slidingWindowProtocol();
+            state = SENDING;
         }
     }
-
 
     boolean checkForTimeout() {
         return System.currentTimeMillis() - lastAckTime > TIMEOUT_MS;
