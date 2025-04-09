@@ -9,21 +9,26 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Client {
     private static int urlNum = 1;
     private static final int PORT = 26880;
+    private static boolean enableDropEmulation = false;
+    private static final int DROP_PERCENTAGE = 1;
+
     private static final String SERVER = "localhost";
-    private static boolean implementDropEmulation = false;
+    private static ArrayList<Integer> throughputData = new ArrayList<>();
+
 
     public static void main(String[] args) {
         // Initial Setup
         Scanner scanner = new Scanner(System.in);
         System.out.println("Emulate packet loss? [Yes or No]");
         if (scanner.nextLine().equalsIgnoreCase("yes")) {
-            implementDropEmulation = true;
+            enableDropEmulation = true;
         } else {
-            implementDropEmulation = false;
+            enableDropEmulation = false;
         }
 
         System.out.println("Please enter the image address or enter 'exit' to terminate program: ");
@@ -41,11 +46,12 @@ public class Client {
                 out.writeInt(urlPacket.length);
                 out.write(urlPacket);
 
+
                 System.out.println("Client: " + "Sending url " + urlNum);
                 urlNum++;
 
                 ArrayList<byte[]> packets = new ArrayList<>();
-                boolean finalPacket = false;
+                long startTime = System.nanoTime();
                 while (true) {
                     int length = in.readInt();
                     byte[] encryptedPacket = new byte[length];
@@ -57,15 +63,21 @@ public class Client {
                     byte[] decryptedPacket = Workers.encryptionCodec(encryptedPacket, encryptionKey);
                     int blockNumber = ((decryptedPacket[2] & 0xff) << 8) | (decryptedPacket[3] & 0xff);
                     byte[] ack = Workers.createACKPacket(blockNumber);
-                    out.writeInt(ack.length);
-                    out.write(ack);
-                    System.out.println("Blocknumber: " + blockNumber + ", Bytes: " + Arrays.toString(decryptedPacket));
+                    if (enableDropEmulation && shouldDropPacket()) {
+                        System.out.println("Packet Dropped");
+                    } else {
+                        out.writeInt(ack.length);
+                        out.write(ack);
+                    }
+//                    System.out.println("Blocknumber: " + blockNumber + ", Bytes: " + Arrays.toString(decryptedPacket));
 
                     packets.add(decryptedPacket);
 
                     System.out.println(packets.size());
                 }
+                long endTime = System.nanoTime();
 
+                // Creating Image
                 ByteArrayOutputStream output = new ByteArrayOutputStream();
                 for (byte[] imagePacket : packets) {
                     byte[] extracted = Workers.extractPacketData(imagePacket);
@@ -75,8 +87,14 @@ public class Client {
                 Workers.bytesToImage(finalImageFrame, safeURL);
                 output.close();
 
+                // Calculating Throughput
                 double imageSizeInMB = (finalImageFrame.length * 8) / 1e6;
-                System.out.println("Image Size in MB: " + imageSizeInMB);
+                double timeInSeconds = (endTime - startTime) / 1e6;
+                double throughput = imageSizeInMB / timeInSeconds;
+                System.out.println("Image Size in MB: " + imageSizeInMB + " \n" +
+                        "Time: " + timeInSeconds + " \n" +
+                        " Throughput: " + throughput);
+
 
                 System.out.println("Please enter the image address or enter 'exit' to terminate program: ");
                 url = scanner.nextLine();
@@ -86,5 +104,10 @@ public class Client {
                 // graph
             }
         }
+    }
+
+    static boolean shouldDropPacket() {
+        int rand = ThreadLocalRandom.current().nextInt(100);
+        return rand < DROP_PERCENTAGE;
     }
 }

@@ -6,8 +6,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -27,17 +26,26 @@ public class Server {
     static int state = WAITING;
     static byte[] encryptionKey;
 
+    static DataOutputStream out;
+    static final int TIMEOUT_MS = 1000;
+    public static int sendWindowSize = 8;
 
-    public static void main(String[] args) {
+
+
+    public static void main(String[] args) throws SocketTimeoutException {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Please enter window size: [1, 8, 64]" );
+        sendWindowSize = scanner.nextInt();
+        scanner.close();
         System.out.println("Waiting for Connection");
+
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             for (; ; ) {
                 Socket client = serverSocket.accept();
                 System.out.println("Server Connected");
-                client.setSoTimeout(30000);
 
-                try (DataOutputStream out = new DataOutputStream(client.getOutputStream());
-                     DataInputStream in = new DataInputStream(client.getInputStream())) {
+                try (DataInputStream in = new DataInputStream(client.getInputStream())) {
+                    out = new DataOutputStream(client.getOutputStream());
 
                     for (; ; ) {
                         try {
@@ -46,6 +54,7 @@ public class Server {
                             byte[] receivedData = new byte[length];
                             in.readFully(receivedData);
                             System.out.println(Arrays.toString(receivedData));
+
 
                             if (state == WAITING) {
                                 // GOOD TEST IMAGE: https://i.ytimg.com/vi/2DjGg77iz-A/sddefault.jpg
@@ -74,23 +83,21 @@ public class Server {
                             }
 
                             if (state == SENDING) {
-                                while (leftPointer < tcpSlidingWindow.size()) {
-                                    while (leftPointer + SEND_WINDOW_SIZE > rightPointer
-                                            && rightPointer < tcpSlidingWindow.size()) {
-                                        byte[] packet = tcpSlidingWindow.get(rightPointer);
-                                        byte[] encrypted = Workers.encryptionCodec(packet, encryptionKey);
-                                        out.writeInt(encrypted.length);
-                                        out.write(encrypted);
-                                        rightPointer++;
-                                    }
-                                    state = RECEIVING;
-                                    break;
+                                while (leftPointer + sendWindowSize > rightPointer
+                                        && rightPointer < tcpSlidingWindow.size()) {
+                                    byte[] packet = tcpSlidingWindow.get(rightPointer);
+                                    byte[] encrypted = Workers.encryptionCodec(packet, encryptionKey);
+                                    out.writeInt(encrypted.length);
+                                    out.write(encrypted);
+                                    rightPointer++;
                                 }
+
+                                state = RECEIVING;
+                                lastAckTime = System.currentTimeMillis();
                             }
 
                             if (state == RECEIVING) {
-                                /* CASE 1: RECEIVE ACKS */
-                                while (state == RECEIVING) {
+                                if (receivedData.length >= 4) {
                                     int ackBlockNum = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
                                     acks.add(ackBlockNum);
                                     lastAckTime = System.currentTimeMillis();
@@ -109,14 +116,6 @@ public class Server {
                             }
 
                             if (state == TERMINATING) {
-//                                byte[] leftovers = new byte[4];
-//                                while (true) {
-//                                    try {
-//                                        in.readFully(leftovers);
-//                                    } catch (EOFException e) {
-//                                        break;
-//                                    }
-//                                }
                                 tcpSlidingWindow.clear();
                                 acks.clear();
                                 state = WAITING;
@@ -135,7 +134,7 @@ public class Server {
                     out.close();
                     in.close();
                 } catch (IOException e) {
-                    System.err.println("Error handling client connection: " + e.getMessage());
+                    System.err.println("Error reading from client: " + e.getMessage());
                 } finally {
                     try {
                         client.close();
@@ -148,5 +147,9 @@ public class Server {
             ex.printStackTrace();
             System.exit(-1);
         }
+    }
+
+    boolean checkForTimeout() {
+        return System.currentTimeMillis() - lastAckTime > TIMEOUT_MS;
     }
 }

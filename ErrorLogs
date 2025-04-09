@@ -39,6 +39,7 @@ Possible Causes of Bug:
 1. Data Packet: [I used the code 7 to display the upcoming ending packet, but it seemed to have replaced the final two packet as the same as window.size - 2 as well]
 Note: Fixing this in sequential didn't fix the bug, so there's more to it
 
+Solution: Moving when I entered the terminating phase
 
 Architect:
 1. Start Reactor

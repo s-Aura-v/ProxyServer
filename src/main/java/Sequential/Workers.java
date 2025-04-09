@@ -8,9 +8,9 @@ import java.nio.file.StandardCopyOption;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Workers {
-    public static final int SEND_WINDOW_SIZE = 4;
     public static final int MAX_PACKET_SIZE = 512;
     public static final int OPCODE_SIZE = 2;
     public static final int BLOCK_SIZE = 2;
@@ -122,6 +122,8 @@ public class Workers {
             System.out.println("Packet incomplete; Unable to save file ");
         }
     }
+
+
 
 
 
