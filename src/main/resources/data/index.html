@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>TCP Sliding Window Protocol Implementation</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <h1>Throughput Mean Graph</h1>
+    <div class="figures">
+      <figure>
+        <img src="bargraph.png" />
+        <figcaption>goodbye</figcaption>
+        <br />
+        <table border="1" cellpadding="8" cellspacing="0">
+          <thead>
+            <tr>
+              <th></th>
+              <th>1</th>
+              <th>8</th>
+              <th>64</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Local-Local</td>
+              <td>0</td>
+              <td>99.14955032</td>
+              <td>134.0496588</td>
+            </tr>
+            <tr>
+              <td>Local-Moxie</td>
+              <td>0</td>
+              <td>3.235446812</td>
+              <td>12.80274731</td>
+            </tr>
+            <tr>
+              <td>Moxie-Gee</td>
+              <td>0</td>
+              <td>5.983423941</td>
+              <td>22.60218746</td>
+            </tr>
+          </tbody>
+        </table>
+      </figure>
+      <figure>
+        <img src="bargraph.png" />
+        <figcaption>hello</figcaption>
+        <br />
+        <table border="1" cellpadding="8" cellspacing="0">
+          <thead>
+            <tr>
+              <th></th>
+              <th>1</th>
+              <th>8</th>
+              <th>64</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Local-Local</td>
+              <td>0</td>
+              <td>1.131381578</td>
+              <td>0.702912776</td>
+            </tr>
+            <tr>
+              <td>Local-Moxie</td>
+              <td>0</td>
+              <td>0.756481448</td>
+              <td>1.947184463</td>
+            </tr>
+            <tr>
+              <td>Moxie-Gee</td>
+              <td>0</td>
+              <td>0.707174343</td>
+              <td>0.824115813</td>
+            </tr>
+          </tbody>
+        </table>
+      </figure>
+    </div>
+    <hr />
+    <h1>Throughput Graph</h1>
+    <div class="figures">
+      <figure>
+        <img src="graphs/local-local, 1, drops.png" />
+      </figure>
+      <figure>
+        <img src="graphs/local-local, 1, no-drops.png" />
+      </figure>
+    </div>
+
+    <h1>Data Used</h1>
+    <div class="image-grid">
+      <img src="https://s-aura-v.com/assets/S24_P2_3-DHpYVaBM.png" />
+      <img
+        src="https://www.seacoastonline.com/gcdn/presto/2021/11/29/NPOH/e28ea279-030e-4c1d-a574-dffd5da55e48-gray_squirrel_cropped.jpg"
+      />
+      <img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRB_PC93m0bHPZUpGZ1yen5N6-9dRT0Se_18A&s"
+      />
+      <img
+        src="https://www.seacoastonline.com/gcdn/presto/2021/11/29/NPOH/e28ea279-030e-4c1d-a574-dffd5da55e48-gray_squirrel_cropped.jpg"
+      />
+      <img
+        src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Elizabeth_Tower%2C_June_2022.jpg/640px-Elizabeth_Tower%2C_June_2022.jpg"
+      />
+      <img
+        src="https://www.bushheritage.org.au/uploads/main/Images/Places/Qld/pilungah/RS32891-kanga-pilung-peter-wallis.jpg"
+      />
+      <img
+        src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Male_and_female_chicken_sitting_together.jpg/800px-Male_and_female_chicken_sitting_together.jpg"
+      />
+      <img
+        src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2b/32/05/d4/the-stunning-scissor.jpg"
+      />
+      <img
+        src="https://m.media-amazon.com/images/I/815gN5NqNcL._AC_UF894,1000_QL80_.jpg"
+      />
+      <img
+        src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Elizabeth_Tower%2C_June_2022.jpg/640px-Elizabeth_Tower%2C_June_2022.jpg"
+      />
+      <img src="https://i.ytimg.com/vi/2DjGg77iz-A/sddefault.jpg" />
+      <img src="https://s-aura-v.com/assets/F24_P1-C98K-uUV.png" />
+      <img src="https://s-aura-v.com/assets/S24_P2_1-CTsGpXsh.png" />
+      <img src="https://s-aura-v.com/assets/S24_P2_2-Cz83HeVL.png" />
+      <img
+        src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Elizabeth_Tower%2C_June_2022.jpg/640px-Elizabeth_Tower%2C_June_2022.jpg"
+      />
+      <img src="https://s-aura-v.com/assets/S24_P2_3-DHpYVaBM.png" />
+      <img src="https://s-aura-v.com/assets/S24_P2_3-DHpYVaBM.png" />
+      <img
+        src="https://www.peta.org/wp-content/uploads/2011/08/baby-chicks.jpg"
+      />
+      <img
+        src="https://cdn.prod.website-files.com/5eae38112aed416159affd28/5ebaf4ae8d21df73a44d5a23_19.jpg"
+      />
+      <img
+        src="https://m.media-amazon.com/images/I/815gN5NqNcL._AC_UF894,1000_QL80_.jpg"
+      />
+      <img
+        src="https://m.media-amazon.com/images/I/815gN5NqNcL._AC_UF894,1000_QL80_.jpg"
+      />
+      <img src="https://cdn.eso.org/images/wallpaper5/eso1907a.jpg" />
+      <img
+        src="https://i.dailymail.co.uk/1s/2019/12/19/18/22464590-7810929-image-m-13_1576780377144.jpg"
+      />
+      <img
+        src="https://giraffeconservation.org/wp-content/uploads/2024/11/featured-16-9_southern-3-topaz.jpg"
+      />
+      <img
+        src="https://giraffeconservation.org/wp-content/uploads/2024/11/featured-16-9_southern-3-topaz.jpg"
+      />
+      <img
+        src="https://i1.rgstatic.net/ii/profile.image/273859333062657-1442304561464_Q512/Doug-Lea.jpg"
+      />
+      <img
+        src="https://www.oswego.edu/news/sites/www.oswego.edu.news/files/styles/panopoly_image_original/public/healthcareintelligence.jpg"
+      />
+      <img src="https://s-aura-v.com/assets/S24_P2_3-DHpYVaBM.png" />
+      <img
+        src="https://cdn.prod.website-files.com/5eae38112aed416159affd28/5ebaf4ae8d21df73a44d5a23_19.jpg"
+      />
+      <img src="https://s-aura-v.com/assets/F24_P1-C98K-uUV.png" />
+    </div>
+  </body>
+</html>

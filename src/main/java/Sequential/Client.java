@@ -103,7 +103,7 @@ public class Client {
             } catch (IOException e) {
                 System.out.println("Client " + urlNum + " failed to connect");
             } finally {
-                Files.write(Path.of("src/main/resources/data/local-moxie, 64, drops"), throughputData, Charset.defaultCharset());
+                Files.write(Path.of("src/main/resources/data/local-moxie, 1, drops"), throughputData, Charset.defaultCharset());
             }
         }
     }
