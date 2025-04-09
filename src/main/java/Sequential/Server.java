@@ -22,7 +22,7 @@ public class Server {
     static int rightPointer = 0;
     static double lastAckTime = 0;
 
-    static final int WAITING = 0, SENDING = 1, RECEIVING = 2, TERMINATING = 3;
+    static final int WAITING = 0, SENDING = 1, TERMINATING = 3;
     static int state = WAITING;
     static byte[] encryptionKey;
 
@@ -49,7 +49,6 @@ public class Server {
                     for (; ; ) {
                         try {
                             /* SETUP: GET DATA */
-
                             int length = in.readInt();
                             byte[] receivedData = new byte[length];
                             in.readFully(receivedData);
@@ -124,6 +123,8 @@ public class Server {
         tcpSlidingWindow = Workers.createTCPSlidingWindow(imageBytes);
         leftPointer = 0;
         rightPointer = 0;
+
+        slidingWindowProtocol();
         state = SENDING;
     }
 
@@ -158,7 +159,7 @@ public class Server {
         if (leftPointer >= tcpSlidingWindow.size()) {
             state = TERMINATING;
         } else {
-            state = SENDING;
+            slidingWindowProtocol();
         }
     }
 

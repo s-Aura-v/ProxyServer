@@ -89,7 +89,7 @@ public class Client {
 
                 // Calculating Throughput
                 double imageSizeInMB = (finalImageFrame.length * 8) / 1e6;
-                double timeInSeconds = (endTime - startTime) / 1e6;
+                double timeInSeconds = (endTime - startTime) / 1e9;
                 double throughput = imageSizeInMB / timeInSeconds;
                 System.out.println("Image Size in MB: " + imageSizeInMB + " \n" +
                         "Time: " + timeInSeconds + " \n" +
