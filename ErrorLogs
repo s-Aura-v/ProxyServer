@@ -35,6 +35,10 @@ As in, remove all your previous test cases and redo it step by step to see if yo
 ( In Sequential, it only read up to 117 out of 120 acks leaving excess acks that have left to be read )
 If I fix this, reactive programming might work.
 
+Possible Causes of Bug:
+1. Data Packet: [I used the code 7 to display the upcoming ending packet, but it seemed to have replaced the final two packet as the same as window.size - 2 as well]
+Note: Fixing this in sequential didn't fix the bug, so there's more to it
+
 
 Architect:
 1. Start Reactor

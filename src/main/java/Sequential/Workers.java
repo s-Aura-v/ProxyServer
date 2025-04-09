@@ -43,11 +43,6 @@ public class Workers {
             window.add(packet);
             blockNum++;
         }
-        // 7 indicates final packet - tells client that it can stop reading.
-        byte[] testPacket = window.get(window.size() - 2);
-        testPacket[0] = 7;
-        window.set(window.size() - 1, testPacket);
-
         return window;
     }
 

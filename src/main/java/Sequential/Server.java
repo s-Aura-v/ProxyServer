@@ -23,7 +23,6 @@ public class Server {
     static int rightPointer = 0;
     static double lastAckTime = 0;
 
-    private static int WINDOW_SIZE = 4;
     static final int WAITING = 0, SENDING = 1, RECEIVING = 2, TERMINATING = 3;
     static int state = WAITING;
     static byte[] encryptionKey;
@@ -49,6 +48,7 @@ public class Server {
                             System.out.println(Arrays.toString(receivedData));
 
                             if (state == WAITING) {
+                                // GOOD TEST IMAGE: https://i.ytimg.com/vi/2DjGg77iz-A/sddefault.jpg
                                 /* CASE 2: READ URL AND DOWNLOAD DATA */
                                 // URL PACKET = OPCODE + KEY + DATA
                                 byte[] packetData = Arrays.copyOfRange(receivedData, OPCODE_SIZE + KEY_SIZE, receivedData.length);
@@ -105,7 +105,34 @@ public class Server {
                                 }
                             }
 
+                            // In the RECEIVING state block, replace with this:
+                            if (state == RECEIVING) {
+                                /* CASE 1: RECEIVE ACKS */
+                                // Verify we have enough data for an ACK packet (at least 4 bytes)
+                                if (receivedData.length >= 4) {
+                                    int ackBlockNum = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
+                                    acks.add(ackBlockNum);
+                                    lastAckTime = System.currentTimeMillis();
+
+                                    while (acks.contains(leftPointer)) {
+                                        leftPointer++;
+                                    }
+
+                                    state = SENDING;
+                                } else {
+                                    System.err.println("Received malformed ACK packet");
+                                }
+                            }
+
                             if (state == TERMINATING) {
+//                                byte[] leftovers = new byte[4];
+//                                while (true) {
+//                                    try {
+//                                        in.readFully(leftovers);
+//                                    } catch (EOFException e) {
+//                                        break;
+//                                    }
+//                                }
                                 tcpSlidingWindow.clear();
                                 acks.clear();
                                 state = WAITING;

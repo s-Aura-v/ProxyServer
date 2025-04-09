@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class Client {
@@ -58,6 +59,7 @@ public class Client {
                     byte[] ack = Workers.createACKPacket(blockNumber);
                     out.writeInt(ack.length);
                     out.write(ack);
+                    System.out.println("Blocknumber: " + blockNumber + ", Bytes: " + Arrays.toString(decryptedPacket));
 
                     packets.add(decryptedPacket);
 
