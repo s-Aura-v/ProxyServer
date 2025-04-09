@@ -28,7 +28,7 @@ public class Server {
 
     static DataOutputStream out;
     static final int TIMEOUT_MS = 3000;
-    public static int sendWindowSize = 64;
+    public static int sendWindowSize = 4;
 
 
     public static void main(String[] args) throws SocketTimeoutException {
@@ -139,9 +139,6 @@ public class Server {
             rightPointer++;
         }
         System.out.println(leftPointer);
-        while (acks.contains(leftPointer)) {
-            leftPointer++;
-        }
     }
 
     static void readAcks(byte[] receivedData) throws IOException {
