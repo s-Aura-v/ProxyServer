@@ -30,6 +30,8 @@ public class Server {
     static final int TIMEOUT_MS = 3000;
     public static int sendWindowSize = 4;
 
+    static boolean timedOut = false;
+
 
     public static void main(String[] args) throws SocketTimeoutException {
 //        Scanner scanner = new Scanner(System.in);
@@ -45,12 +47,20 @@ public class Server {
 
                 try (DataInputStream in = new DataInputStream(client.getInputStream())) {
                     out = new DataOutputStream(client.getOutputStream());
-
                     client.setSoTimeout(TIMEOUT_MS);
+
                     for (; ; ) {
                         try {
+
+
                             /* SETUP: GET DATA */
-                            int length = in.readInt();
+                            int length = 0;
+                            try {
+                                length = in.readInt();
+                            } catch (SocketTimeoutException e) {
+                                System.out.println("Packet Drop Error: Resending Packet");
+                                writeLostPacket();
+                            }
                             byte[] receivedData = new byte[length];
                             in.readFully(receivedData);
                             System.out.println(Arrays.toString(receivedData));
@@ -90,8 +100,14 @@ public class Server {
                     }
                     out.close();
                     in.close();
+                } catch (SocketTimeoutException e) {
+                    System.out.println("Lost packet. Resending... " + leftPointer);
+                    writeLostPacket();
+                    lastAckTime = System.currentTimeMillis();
+                    state = SENDING;
                 } catch (IOException e) {
                     System.err.println("Error reading from client: " + e.getMessage());
+                    timedOut = true;
                 } finally {
                     try {
                         client.close();
@@ -155,6 +171,12 @@ public class Server {
         } else {
             state = SENDING;
         }
+    }
+
+    static void writeLostPacket() throws IOException {
+        byte[] packet = tcpSlidingWindow.get(leftPointer);
+        out.writeInt(packet.length);
+        out.write(packet);
     }
 
     boolean checkForTimeout() {
