@@ -18,7 +18,7 @@ public class Client {
     private static boolean enableDropEmulation = false;
     private static final int DROP_PERCENTAGE = 1;
 
-    private static final String SERVER = "localhost";
+    private static final String SERVER = "moxie.cs.oswego.edu";
     private static ArrayList<String> throughputData = new ArrayList<>();
 
 
@@ -103,7 +103,7 @@ public class Client {
             } catch (IOException e) {
                 System.out.println("Client " + urlNum + " failed to connect");
             } finally {
-                Files.write(Path.of("src/main/resources/data/local-local, 1, drops"), throughputData, Charset.defaultCharset());
+                Files.write(Path.of("src/main/resources/data/local-moxie, 64, drops"), throughputData, Charset.defaultCharset());
             }
         }
     }
