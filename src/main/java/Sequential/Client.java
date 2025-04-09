@@ -47,7 +47,7 @@ public class Client {
                 out.write(urlPacket);
 
 
-                System.out.println("Client: " + "Sending url " + urlNum);
+//                System.out.println("Client: " + "Sending url " + urlNum);
                 urlNum++;
 
                 ArrayList<byte[]> packets = new ArrayList<>();
@@ -64,7 +64,7 @@ public class Client {
                     int blockNumber = ((decryptedPacket[2] & 0xff) << 8) | (decryptedPacket[3] & 0xff);
                     byte[] ack = Workers.createACKPacket(blockNumber);
                     if (enableDropEmulation && shouldDropPacket()) {
-                        System.out.println("Packet Dropped");
+//                        System.out.println("Packet Dropped");
                     } else {
                         out.writeInt(ack.length);
                         out.write(ack);
@@ -73,7 +73,7 @@ public class Client {
 
                     packets.add(decryptedPacket);
 
-                    System.out.println(packets.size());
+//                    System.out.println(packets.size());
                 }
                 long endTime = System.nanoTime();
 

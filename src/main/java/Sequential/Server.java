@@ -31,12 +31,11 @@ public class Server {
     public static int sendWindowSize = 8;
 
 
-
     public static void main(String[] args) throws SocketTimeoutException {
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Please enter window size: [1, 8, 64]" );
-        sendWindowSize = scanner.nextInt();
-        scanner.close();
+//        Scanner scanner = new Scanner(System.in);
+//        System.out.println("Please enter window size: [1, 8, 64]" );
+//        sendWindowSize = scanner.nextInt();
+//        scanner.close();
         System.out.println("Waiting for Connection");
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
@@ -50,69 +49,26 @@ public class Server {
                     for (; ; ) {
                         try {
                             /* SETUP: GET DATA */
+
                             int length = in.readInt();
                             byte[] receivedData = new byte[length];
                             in.readFully(receivedData);
-                            System.out.println(Arrays.toString(receivedData));
 
+                            // CASE 1: ACK
+                            // maybe i can just send all acks from the client at once
+                            if (receivedData.length >= 4 && receivedData[1] == 4) {
+                                readAcks(receivedData);
+                            }
 
                             if (state == WAITING) {
                                 // GOOD TEST IMAGE: https://i.ytimg.com/vi/2DjGg77iz-A/sddefault.jpg
                                 /* CASE 2: READ URL AND DOWNLOAD DATA */
                                 // URL PACKET = OPCODE + KEY + DATA
-                                System.out.println(receivedData.length);
-                                byte[] packetData = Arrays.copyOfRange(receivedData, OPCODE_SIZE + KEY_SIZE, receivedData.length);
-                                encryptionKey = (Arrays.copyOfRange(receivedData, OPCODE_SIZE, receivedData.length - packetData.length));
-                                String url = new String(packetData, StandardCharsets.UTF_8);
-                                String safeUrl = url.replaceAll("/", "__");
-                                System.out.println(url);
-
-                                byte[] imageBytes;
-                                if (cache.hasKey(safeUrl)) {
-                                    imageBytes = cache.get(safeUrl);
-                                } else {
-                                    Workers.downloadImage(safeUrl);
-                                    imageBytes = Workers.imageToBytes(CACHE_PATH + safeUrl);
-                                    cache.addToCache(safeUrl, imageBytes);
-                                }
-
-                                tcpSlidingWindow = Workers.createTCPSlidingWindow(imageBytes);
-                                leftPointer = 0;
-                                rightPointer = 0;
-                                state = SENDING;
+                                urlRead(receivedData);
                             }
 
                             if (state == SENDING) {
-                                while (leftPointer + sendWindowSize > rightPointer
-                                        && rightPointer < tcpSlidingWindow.size()) {
-                                    byte[] packet = tcpSlidingWindow.get(rightPointer);
-                                    byte[] encrypted = Workers.encryptionCodec(packet, encryptionKey);
-                                    out.writeInt(encrypted.length);
-                                    out.write(encrypted);
-                                    rightPointer++;
-                                }
-
-                                state = RECEIVING;
-                                lastAckTime = System.currentTimeMillis();
-                            }
-
-                            if (state == RECEIVING) {
-                                if (receivedData.length >= 4) {
-                                    int ackBlockNum = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
-                                    acks.add(ackBlockNum);
-                                    lastAckTime = System.currentTimeMillis();
-
-                                    while (acks.contains(leftPointer)) {
-                                        leftPointer++;
-                                    }
-
-                                    System.out.println("Pointer Value: " + leftPointer);
-                                    if (leftPointer >= tcpSlidingWindow.size()) {
-                                        state = TERMINATING;
-                                    } else {
-                                        state = SENDING;
-                                    }
-                                }
+                                slidingWindowProtocol();
                             }
 
                             if (state == TERMINATING) {
@@ -148,6 +104,64 @@ public class Server {
             System.exit(-1);
         }
     }
+
+    static void urlRead(byte[] receivedData) throws IOException {
+        byte[] packetData = Arrays.copyOfRange(receivedData, OPCODE_SIZE + KEY_SIZE, receivedData.length);
+        encryptionKey = (Arrays.copyOfRange(receivedData, OPCODE_SIZE, receivedData.length - packetData.length));
+        String url = new String(packetData, StandardCharsets.UTF_8);
+        String safeUrl = url.replaceAll("/", "__");
+        System.out.println(url);
+
+        byte[] imageBytes;
+        if (cache.hasKey(safeUrl)) {
+            imageBytes = cache.get(safeUrl);
+        } else {
+            Workers.downloadImage(safeUrl);
+            imageBytes = Workers.imageToBytes(CACHE_PATH + safeUrl);
+            cache.addToCache(safeUrl, imageBytes);
+        }
+
+        tcpSlidingWindow = Workers.createTCPSlidingWindow(imageBytes);
+        leftPointer = 0;
+        rightPointer = 0;
+        state = SENDING;
+    }
+
+    static void slidingWindowProtocol() throws IOException {
+        while (leftPointer < tcpSlidingWindow.size()) {
+            while (leftPointer + sendWindowSize > rightPointer
+                    && rightPointer < tcpSlidingWindow.size()) {
+                byte[] packet = tcpSlidingWindow.get(rightPointer);
+                byte[] encrypted = Workers.encryptionCodec(packet, encryptionKey);
+                out.writeInt(encrypted.length);
+                out.write(encrypted);
+                rightPointer++;
+            }
+            while (acks.contains(leftPointer)) {
+                leftPointer++;
+            }
+            if (!acks.contains(leftPointer)) {
+                break;
+            }
+        }
+    }
+
+    static void readAcks(byte[] receivedData) throws IOException {
+        int ackBlockNum = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
+        acks.add(ackBlockNum);
+        lastAckTime = System.currentTimeMillis();
+
+        while (acks.contains(leftPointer)) {
+            leftPointer++;
+        }
+
+        if (leftPointer >= tcpSlidingWindow.size()) {
+            state = TERMINATING;
+        } else {
+            state = SENDING;
+        }
+    }
+
 
     boolean checkForTimeout() {
         return System.currentTimeMillis() - lastAckTime > TIMEOUT_MS;
