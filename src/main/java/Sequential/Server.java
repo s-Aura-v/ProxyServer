@@ -51,6 +51,7 @@ public class Server {
                                 // GOOD TEST IMAGE: https://i.ytimg.com/vi/2DjGg77iz-A/sddefault.jpg
                                 /* CASE 2: READ URL AND DOWNLOAD DATA */
                                 // URL PACKET = OPCODE + KEY + DATA
+                                System.out.println(receivedData.length);
                                 byte[] packetData = Arrays.copyOfRange(receivedData, OPCODE_SIZE + KEY_SIZE, receivedData.length);
                                 encryptionKey = (Arrays.copyOfRange(receivedData, OPCODE_SIZE, receivedData.length - packetData.length));
                                 String url = new String(packetData, StandardCharsets.UTF_8);
@@ -83,9 +84,6 @@ public class Server {
                                         rightPointer++;
                                     }
                                     state = RECEIVING;
-                                    if (rightPointer == tcpSlidingWindow.size()) {
-                                        state = TERMINATING;
-                                    }
                                     break;
                                 }
                             }
@@ -101,26 +99,12 @@ public class Server {
                                         leftPointer++;
                                     }
 
-                                    state = SENDING;
-                                }
-                            }
-
-                            // In the RECEIVING state block, replace with this:
-                            if (state == RECEIVING) {
-                                /* CASE 1: RECEIVE ACKS */
-                                // Verify we have enough data for an ACK packet (at least 4 bytes)
-                                if (receivedData.length >= 4) {
-                                    int ackBlockNum = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
-                                    acks.add(ackBlockNum);
-                                    lastAckTime = System.currentTimeMillis();
-
-                                    while (acks.contains(leftPointer)) {
-                                        leftPointer++;
+                                    System.out.println("Pointer Value: " + leftPointer);
+                                    if (leftPointer >= tcpSlidingWindow.size()) {
+                                        state = TERMINATING;
+                                    } else {
+                                        state = SENDING;
                                     }
-
-                                    state = SENDING;
-                                } else {
-                                    System.err.println("Received malformed ACK packet");
                                 }
                             }
 
@@ -137,6 +121,7 @@ public class Server {
                                 acks.clear();
                                 state = WAITING;
                                 out.writeInt(0);
+                                System.out.println("Image Complete. Awaiting further images. ");
                             }
 
                         } catch (EOFException e) {
