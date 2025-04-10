@@ -10,8 +10,15 @@ import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+import static Sequential.Packets.KEY_SIZE;
+import static Sequential.Packets.OPCODE_SIZE;
 import static Sequential.Workers.*;
 
+/**
+ * A class responsible for communicating with client to download, store, cache, and send image data.
+ * <p>
+ * The class includes SlidingWindowProtocol, TFIP Packets, TCP Retransmission Timeout and more.
+ */
 public class Server {
     static final int PORT = 26880;
 
@@ -30,12 +37,9 @@ public class Server {
     static final int TIMEOUT_MS = 1000;
     public static int sendWindowSize = 8;
 
-    static boolean timedOut = false;
-
-
-    public static void main(String[] args) throws SocketTimeoutException {
+    public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Please enter window size: [1, 8, 64]" );
+        System.out.println("Please enter window size: [1, 8, 64]");
         sendWindowSize = scanner.nextInt();
         scanner.close();
         System.out.println("Waiting for Connection");
@@ -51,7 +55,6 @@ public class Server {
 
                     for (; ; ) {
                         try {
-
                             /* SETUP: GET DATA */
                             int length = 0;
                             try {
@@ -62,29 +65,28 @@ public class Server {
                             }
                             byte[] receivedData = new byte[length];
                             in.readFully(receivedData);
-//                            System.out.println(Arrays.toString(receivedData));
 
                             // CASE 1: ACK
                             if (receivedData.length >= 4 && receivedData[1] == 4) {
                                 readAcks(receivedData);
                             }
 
+                            // CASE 2: URL DATA
                             if (state == WAITING) {
-                                // GOOD TEST IMAGE: https://i.ytimg.com/vi/2DjGg77iz-A/sddefault.jpg
-                                /* CASE 2: READ URL AND DOWNLOAD DATA */
-                                // URL PACKET = OPCODE + KEY + DATA
                                 urlRead(receivedData);
                             }
 
+                            // CASE 3: SLIDING-WINDOW COMMUNICATION
                             if (state == SENDING) {
                                 slidingWindowProtocol();
                             }
 
+                            // CASE 4: CLEAR ALL DATA AND GET READY FOR NEXT IMAGE
                             if (state == TERMINATING) {
                                 tcpSlidingWindow.clear();
                                 acks.clear();
                                 state = WAITING;
-                                client.setSoTimeout(Integer.MAX_VALUE); // let's set the timeout to infinite so that it doesn't timeout without new url
+                                client.setSoTimeout(Integer.MAX_VALUE);
                                 out.writeInt(0);
                                 System.out.println("Image Complete. Awaiting further images. ");
                             }
@@ -99,10 +101,8 @@ public class Server {
                         }
                     }
                     out.close();
-                    in.close();
                 } catch (IOException e) {
                     System.err.println("Error reading from client: " + e.getMessage());
-                    timedOut = true;
                 } finally {
                     try {
                         client.close();
@@ -117,12 +117,17 @@ public class Server {
         }
     }
 
+    /**
+     * STATE = WAITING
+     * Reads the url packet, uses cache functions, and creates the sliding window starting the communication between server-client.
+     * @param receivedData - url packet read by the server
+     * @throws IOException cannot usually be thrown, but is kept as safety measure.
+     */
     static void urlRead(byte[] receivedData) throws IOException {
         byte[] packetData = Arrays.copyOfRange(receivedData, OPCODE_SIZE + KEY_SIZE, receivedData.length);
         encryptionKey = (Arrays.copyOfRange(receivedData, OPCODE_SIZE, receivedData.length - packetData.length));
         String url = new String(packetData, StandardCharsets.UTF_8);
         String safeUrl = url.replaceAll("/", "__");
-//        System.out.println(url);
 
         byte[] imageBytes;
         if (cache.hasKey(safeUrl)) {
@@ -133,13 +138,19 @@ public class Server {
             cache.addToCache(safeUrl, imageBytes);
         }
 
-        tcpSlidingWindow = Workers.createTCPSlidingWindow(imageBytes);
+        tcpSlidingWindow = Packets.createTCPSlidingWindow(imageBytes);
         leftPointer = 0;
         rightPointer = 0;
 
         state = SENDING;
     }
 
+    /**
+     * STATE = SENDING; PART 1 OF SLIDING WINDOW PROTOCOL
+     * Sends all the data in the send-window.
+     * <p>
+     * @throws IOException cannot usually be thrown, but is kept as safety measure.
+     */
     static void slidingWindowProtocol() throws IOException {
         while (leftPointer + sendWindowSize > rightPointer
                 && rightPointer < tcpSlidingWindow.size()) {
@@ -149,9 +160,15 @@ public class Server {
             out.write(encrypted);
             rightPointer++;
         }
-//        System.out.println(leftPointer);
     }
 
+    /**
+     * STATE = SENDING; PART 2 OF THE SLIDING WINDOW PROTOCOL:
+     * After sliding window has sent data, await acknowledgment from the client and move the window accordingly.
+     * <p>
+     * @param receivedData - the 4 byte data read by the server
+     * @throws IOException cannot usually be thrown, but is kept as safety measure.
+     */
     static void readAcks(byte[] receivedData) throws IOException {
         int ackBlockNum = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
         acks.add(ackBlockNum);
@@ -168,13 +185,14 @@ public class Server {
         }
     }
 
+    /**
+     * Writes the left-most data in the sliding window if server does not detect activity in a while.
+     * <p>
+     * @throws IOException cannot usually be thrown, but is kept as safety measure.
+     */
     static void writeLostPacket() throws IOException {
         byte[] packet = tcpSlidingWindow.get(leftPointer);
         out.writeInt(packet.length);
         out.write(packet);
-    }
-
-    boolean checkForTimeout() {
-        return System.currentTimeMillis() - lastAckTime > TIMEOUT_MS;
     }
 }

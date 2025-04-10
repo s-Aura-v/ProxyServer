@@ -9,8 +9,6 @@ import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static Sequential.Workers.CACHE_PATH;
-import static Sequential.Workers.throughputLineGraph;
 
 public class Client {
     private static int urlNum = 1;
@@ -43,7 +41,7 @@ public class Client {
                 String safeURL = url.replaceAll("/", "__");
                 byte[] encryptionKey = Workers.generateSessionKey();
                 byte[] urlData = url.getBytes();
-                byte[] urlPacket = Workers.createURLPacket(urlData, encryptionKey);
+                byte[] urlPacket = Packets.createURLPacket(urlData, encryptionKey);
                 out.writeInt(urlPacket.length);
                 out.write(urlPacket);
 
@@ -63,26 +61,21 @@ public class Client {
 
                     byte[] decryptedPacket = Workers.encryptionCodec(encryptedPacket, encryptionKey);
                     int blockNumber = ((decryptedPacket[2] & 0xff) << 8) | (decryptedPacket[3] & 0xff);
-                    byte[] ack = Workers.createACKPacket(blockNumber);
-//                    System.out.println(blockNumber);
+                    byte[] ack = Packets.createACKPacket(blockNumber);
                     if (enableDropEmulation && shouldDropPacket()) {
 //                        System.out.println("Packet Dropped");
                     } else {
                         out.writeInt(ack.length);
                         out.write(ack);
                     }
-//                    System.out.println("Blocknumber: " + blockNumber + ", Bytes: " + Arrays.toString(decryptedPacket));
-
                     packets.add(decryptedPacket);
-
-//                    System.out.println(packets.size());
                 }
                 long endTime = System.nanoTime();
 
                 // Creating Image
                 ByteArrayOutputStream output = new ByteArrayOutputStream();
                 for (byte[] imagePacket : packets) {
-                    byte[] extracted = Workers.extractPacketData(imagePacket);
+                    byte[] extracted = Packets.extractPacketData(imagePacket);
                     output.write(extracted);
                 }
                 byte[] finalImageFrame = output.toByteArray();
@@ -103,7 +96,7 @@ public class Client {
             } catch (IOException e) {
                 System.out.println("Client " + urlNum + " failed to connect");
             } finally {
-                Files.write(Path.of("src/main/resources/data/local-moxie, 1, drops"), throughputData, Charset.defaultCharset());
+                Files.write(Path.of("src/main/resources/data/local-moxie, 1, no-drops"), throughputData, Charset.defaultCharset());
             }
         }
     }
