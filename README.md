@@ -25,7 +25,7 @@ Run the client using
 
 You can edit the PORT and SERVER in Client.java. 
 
-####Reactor-Pattern
+### Reactor-Pattern
 Reactor Pattern has been deprecated. While it works with single images, it fails when you send multiple images because it did not properly process all of the acks. 
 
 ### Challenges
@@ -36,5 +36,7 @@ Reactor Pattern has been deprecated. While it works with single images, it fails
 
 ### Resources
 https://gee.cs.oswego.edu/dl/csc445/a2.html
+
 https://datatracker.ietf.org/doc/html/rfc6298 
+
 https://docs.google.com/document/d/1w2aBgG3_AVqI-vrXVIz434PII86Ekfp_DPa6dKXhxRQ/edit?tab=t.0
