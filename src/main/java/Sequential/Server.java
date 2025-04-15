@@ -35,7 +35,14 @@ public class Server {
     static DataOutputStream out;
     public static int sendWindowSize = 8;
 
-    // https://docs.google.com/document/d/1w2aBgG3_AVqI-vrXVIz434PII86Ekfp_DPa6dKXhxRQ/edit?tab=t.0
+    /**
+     * TCP Retransmission Timeout uses a moving average to determine the best timeout for each packet.
+     * RTO = SRTT + max (G, K*RTTVAR)
+     * SRTT = RTT *  alpha + SRTT * (1 - alpha) [SRTT = RTT initially]
+     * RTTVAR = abs(RTT - SRTT) * beta + RTTVAR * (1 - beta)
+     * <p>
+     * https://docs.google.com/document/d/1w2aBgG3_AVqI-vrXVIz434PII86Ekfp_DPa6dKXhxRQ/edit?tab=t.0
+     */
     static double RTO = 1000;
     static double SRTT = RTO;
     static double RTTVAR = 500;

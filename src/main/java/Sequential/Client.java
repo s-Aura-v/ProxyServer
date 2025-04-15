@@ -6,6 +6,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Scanner;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -17,6 +18,7 @@ public class Client {
     private static final int DROP_PERCENTAGE = 1;
 
     private static final String SERVER = "localhost";
+//    private static final String SERVER = "moxie.cs.oswego.edu";
     private static ArrayList<String> throughputData = new ArrayList<>();
 
 
@@ -50,6 +52,7 @@ public class Client {
                 urlNum++;
 
                 ArrayList<byte[]> packets = new ArrayList<>();
+                HashMap<Integer, byte[]> packetsMap = new HashMap<>();
                 long startTime = System.nanoTime();
                 while (true) {
                     int length = in.readInt();
@@ -68,14 +71,19 @@ public class Client {
                         out.writeInt(ack.length);
                         out.write(ack);
                     }
-                    packets.add(decryptedPacket);
+//                    packets.add(decryptedPacket);
+                    packetsMap.put(blockNumber, decryptedPacket);
                 }
                 long endTime = System.nanoTime();
 
                 // Creating Image
                 ByteArrayOutputStream output = new ByteArrayOutputStream();
-                for (byte[] imagePacket : packets) {
-                    byte[] extracted = Packets.extractPacketData(imagePacket);
+//                for (byte[] imagePacket : packets) {
+//                    byte[] extracted = Packets.extractPacketData(imagePacket);
+//                    output.write(extracted);
+//                }
+                for (int i = 0; i < packetsMap.size(); i++) {
+                    byte[] extracted = Packets.extractPacketData(packetsMap.get(i));
                     output.write(extracted);
                 }
                 byte[] finalImageFrame = output.toByteArray();
@@ -96,7 +104,7 @@ public class Client {
             } catch (IOException e) {
                 System.out.println("Client " + urlNum + " failed to connect");
             } finally {
-                Files.write(Path.of("src/main/resources/data/local-local, 8, no-drops"), throughputData, Charset.defaultCharset());
+                Files.write(Path.of("src/main/resources/data/local-moxie, 64, drops"), throughputData, Charset.defaultCharset());
             }
         }
     }
