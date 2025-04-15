@@ -2,7 +2,7 @@ import subprocess
 
 # Input string to send to the Java program
 input_lines = """
-no
+yes
 https://s-aura-v.com/assets/S24_P2_3-DHpYVaBM.png
 https://www.seacoastonline.com/gcdn/presto/2021/11/29/NPOH/e28ea279-030e-4c1d-a574-dffd5da55e48-gray_squirrel_cropped.jpg
 https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRB_PC93m0bHPZUpGZ1yen5N6-9dRT0Se_18A&s

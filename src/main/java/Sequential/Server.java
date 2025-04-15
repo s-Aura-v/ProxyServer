@@ -33,7 +33,6 @@ public class Server {
     static byte[] encryptionKey;
 
     static DataOutputStream out;
-    static final int TIMEOUT_MS = 1000;
     public static int sendWindowSize = 8;
 
     // https://docs.google.com/document/d/1w2aBgG3_AVqI-vrXVIz434PII86Ekfp_DPa6dKXhxRQ/edit?tab=t.0
@@ -199,7 +198,7 @@ public class Server {
         if (!retransmitted.contains(ackBlockNum) && sentTimes.containsKey(ackBlockNum)) {
             long currentTimeNS = System.nanoTime();
             long sentTimeNS = sentTimes.get(ackBlockNum);
-            double RTT = (sentTimeNS - currentTimeNS) / 1e6;
+            double RTT = (currentTimeNS - sentTimeNS) / 1e6;
 
             RTTVAR = Math.abs(SRTT - RTT) * beta + RTTVAR * (1 - beta);
             SRTT = RTT * alpha + SRTT * (1 - alpha);
