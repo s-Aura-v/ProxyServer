@@ -27,7 +27,6 @@ public class Server {
     static Set<Integer> acks = new HashSet<>();
     static int leftPointer = 0;
     static int rightPointer = 0;
-    static double lastAckTime = 0;
 
     static final int WAITING = 0, SENDING = 1, TERMINATING = 3;
     static int state = WAITING;
@@ -36,6 +35,17 @@ public class Server {
     static DataOutputStream out;
     static final int TIMEOUT_MS = 1000;
     public static int sendWindowSize = 8;
+
+    // https://docs.google.com/document/d/1w2aBgG3_AVqI-vrXVIz434PII86Ekfp_DPa6dKXhxRQ/edit?tab=t.0
+    static double RTO = 1000;
+    static double SRTT = RTO;
+    static double RTTVAR = 500;
+    static final double alpha = 0.125;
+    static final double beta = 0.25;
+    static final int K = 4;
+    static final int G = 17;
+    static final Map<Integer, Long> sentTimes = new HashMap<>();
+    static final Set<Integer> retransmitted = new HashSet<>();
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -51,7 +61,7 @@ public class Server {
 
                 try (DataInputStream in = new DataInputStream(client.getInputStream())) {
                     out = new DataOutputStream(client.getOutputStream());
-                    client.setSoTimeout(TIMEOUT_MS);
+                    client.setSoTimeout((int) RTO);
 
                     for (; ; ) {
                         try {
@@ -85,6 +95,8 @@ public class Server {
                             if (state == TERMINATING) {
                                 tcpSlidingWindow.clear();
                                 acks.clear();
+                                retransmitted.clear();
+                                sentTimes.clear();
                                 state = WAITING;
                                 client.setSoTimeout(Integer.MAX_VALUE);
                                 out.writeInt(0);
@@ -158,6 +170,12 @@ public class Server {
             byte[] encrypted = Workers.encryptionCodec(packet, encryptionKey);
             out.writeInt(encrypted.length);
             out.write(encrypted);
+
+            // RTO Manipulation: Track the time when this packet is first sent
+            if (!sentTimes.containsKey(rightPointer)) {
+                sentTimes.put(rightPointer, System.nanoTime());
+            }
+
             rightPointer++;
         }
     }
@@ -172,10 +190,21 @@ public class Server {
     static void readAcks(byte[] receivedData) throws IOException {
         int ackBlockNum = ((receivedData[2] & 0xff) << 8) | (receivedData[3] & 0xff);
         acks.add(ackBlockNum);
-        lastAckTime = System.currentTimeMillis();
 
         while (acks.contains(leftPointer)) {
             leftPointer++;
+        }
+
+        // RTO Manipulation: If it's a retransmitted packet, do not use for packet
+        if (!retransmitted.contains(ackBlockNum) && sentTimes.containsKey(ackBlockNum)) {
+            long currentTimeNS = System.nanoTime();
+            long sentTimeNS = sentTimes.get(ackBlockNum);
+            double RTT = (sentTimeNS - currentTimeNS) / 1e6;
+
+            RTTVAR = Math.abs(SRTT - RTT) * beta + RTTVAR * (1 - beta);
+            SRTT = RTT * alpha + SRTT * (1 - alpha);
+
+            RTO = SRTT + Math.max(K * RTTVAR, G);
         }
 
         if (leftPointer >= tcpSlidingWindow.size()) {
@@ -191,6 +220,7 @@ public class Server {
      * @throws IOException cannot usually be thrown, but is kept as safety measure.
      */
     static void writeLostPacket() throws IOException {
+        retransmitted.add(leftPointer);
         byte[] packet = tcpSlidingWindow.get(leftPointer);
         out.writeInt(packet.length);
         out.write(packet);

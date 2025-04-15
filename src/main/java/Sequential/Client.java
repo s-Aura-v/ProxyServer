@@ -16,7 +16,7 @@ public class Client {
     private static boolean enableDropEmulation = false;
     private static final int DROP_PERCENTAGE = 1;
 
-    private static final String SERVER = "moxie.cs.oswego.edu";
+    private static final String SERVER = "localhost";
     private static ArrayList<String> throughputData = new ArrayList<>();
 
 
